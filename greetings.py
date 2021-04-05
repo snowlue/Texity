@@ -4,9 +4,10 @@ from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from logger import log, logger
+from logger import log
 
 NAME = 0
+
 
 @log
 def start(update: Update, context: CallbackContext) -> int:
@@ -43,7 +44,7 @@ def skip(update: Update, context: CallbackContext):
 @log
 def help(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
-    #todo: Вызввать админов или порешать, как должен работать /help
+    # todo: Вызввать админов или порешать, как должен работать /help
     update.message.reply_text(
         'Мир суров. Поэтому рабирайся сам.', reply_markup=ReplyKeyboardRemove()
     )
