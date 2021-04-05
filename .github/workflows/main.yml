@@ -18,6 +18,9 @@ jobs:
       - name: Get api_key
         run: echo ${{ secrets.API_KEY }} > apikey.txt
       
+      - name: Install requirements
+        run: pip install -r requirements.txt
+      
       - name: Run project
         run: python main.py
 
