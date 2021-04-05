@@ -31,10 +31,10 @@ def start(update: Update, _: CallbackContext) -> int:
     return NAME
 
 
-def gender(update: Update, _: CallbackContext) -> int:
+def naming(update: Update, _: CallbackContext) -> int:
     user = update.message.from_user
     name_of_city = update.message.text
-    logger.info("Gender of %s: %s", user.first_name, name_of_city)
+    logger.info("Имя города пользователя %s: %s", user.first_name, name_of_city)
     update.message.reply_text(
         '''
     Прекрасный выбор! Мы уверены, что ваш город с гордым именем "{}" ждут небывалые свершения.
@@ -61,15 +61,12 @@ def help(update: Update, _: CallbackContext) -> int:
 
 def main() -> None:
     updater = Updater(API_KEY)
-
-
     dispatcher = updater.dispatcher
-
 
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            NAME: [MessageHandler(Filters.text, gender)],
+            NAME: [MessageHandler(Filters.text, naming)],
         },
         fallbacks=[CommandHandler('cancel', skip)],
     )
