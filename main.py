@@ -1,3 +1,4 @@
-from secrets import API_KEY
+import greetings
 
-print(API_KEY)
+if __name__ == "__main__":
+    greetings.run()

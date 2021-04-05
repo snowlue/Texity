@@ -1,43 +1,34 @@
-import logging
 from secrets import API_KEY
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
-from telegram.ext import (
-    Updater,
-    CommandHandler,
-    MessageHandler,
-    Filters,
-    ConversationHandler,
-    CallbackContext,
-)
 
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
-)
+from telegram import ReplyKeyboardRemove, Update
+from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
+                          Filters, MessageHandler, Updater)
 
-logger = logging.getLogger(__name__)
+from logger import log, logger
 
 NAME = 0
 
-
-def start(update: Update, _: CallbackContext) -> int:
+@log
+def start(update: Update, context: CallbackContext) -> int:
     update.message.reply_text(
         '''
 Приветствуем тебя в Texity - пошаговой стратегии, в которой ты можешь развивать свой город, чтобы достичь светлого экономического будущего.
 Ты всегда можешь написать команду /help, чтобы получить подробную справку по управлению и механикам.
         
-Итак, введи имя своего города: ''',
+Итак, введи имя своего города! ''',
     )
 
     return NAME
 
 
-def naming(update: Update, _: CallbackContext) -> int:
+@log
+def naming(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
     name_of_city = update.message.text
-    logger.info("Имя города пользователя %s: %s", user.first_name, name_of_city)
+    #! Добавить город в БД!
     update.message.reply_text(
         '''
-    Прекрасный выбор! Мы уверены, что ваш город с гордым именем "{}" ждут небывалые свершения.
+Прекрасный выбор! Мы уверены, что ваш город с гордым именем "{}" ждут небывалые свершения.
 Удачи, император.
 '''.format(name_of_city),
     )
@@ -45,13 +36,14 @@ def naming(update: Update, _: CallbackContext) -> int:
     return ConversationHandler.END
 
 
-def skip(update: Update, _: CallbackContext):
+def skip(update: Update, context: CallbackContext):
     pass
 
 
-def help(update: Update, _: CallbackContext) -> int:
+@log
+def help(update: Update, context: CallbackContext) -> int:
     user = update.message.from_user
-    logger.info("User %s попросил помощь.", user.first_name)
+    #todo: Вызввать админов или порешать, как должен работать /help
     update.message.reply_text(
         'Мир суров. Поэтому рабирайся сам.', reply_markup=ReplyKeyboardRemove()
     )
@@ -59,7 +51,7 @@ def help(update: Update, _: CallbackContext) -> int:
     return ConversationHandler.END
 
 
-def main() -> None:
+def run() -> None:
     updater = Updater(API_KEY)
     dispatcher = updater.dispatcher
 
@@ -79,4 +71,4 @@ def main() -> None:
 
 
 if __name__ == '__main__':
-    main()
+    run()
