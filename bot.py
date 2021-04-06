@@ -45,7 +45,7 @@ def foreign_policy(update, context):
     menu(update, context)
 
 
-def main():
+def run():
     updater = Updater(API_KEY)
     dp = updater.dispatcher
     dp.add_handler(CommandHandler("resources", resources))
@@ -60,4 +60,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    run()
