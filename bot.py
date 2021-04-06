@@ -1,57 +1,63 @@
 from secrets import API_KEY
-
-from telegram import ReplyKeyboardMarkup, Update
-from telegram.ext import CallbackContext, Filters, MessageHandler, Updater
-
-from logger import log
-
-markup = ReplyKeyboardMarkup([['Ресурсы', 'Рынок'],
-                              ['Население', 'Строительство'],
-                              ['Внешняя политика']], one_time_keyboard=False)
+from telegram import ReplyKeyboardMarkup
+from telegram.ext import Updater, MessageHandler, Filters
+from telegram.ext import CallbackContext, CommandHandler
 
 
-@log
-def resources(update: Update, context: CallbackContext):
+markup = ReplyKeyboardMarkup([['/resources', '/market'],
+                              ['/population', '/construction'],
+                              ['/foreign_policy']], one_time_keyboard=False)
+markup_2 = ReplyKeyboardMarkup([['/resources', '/market'],
+                                ['/population', '/construction'],
+                                ['/foreign_policy', '/menu']], one_time_keyboard=False)
+
+
+def menu(update, context):
+    update.message.reply_text('Welcome to бла-бла-бла',  reply_markup=markup_2)
+
+
+def resources(update, context):
     update.message.reply_text(
-        "Ваши ресурсы", reply_markup=markup)
+        "resources", reply_markup=markup)
+    menu(update, context)
 
 
-@log
-def market(update: Update, context: CallbackContext):
+def market(update, context):
     update.message.reply_text(
-        "Рынок", reply_markup=markup)
+        "market", reply_markup=markup)
+    menu(update, context)
 
 
-@log
-def population(update: Update, context: CallbackContext):
-    update.message.reply_text("Ваше население", reply_markup=markup)
+def population(update, context):
+    update.message.reply_text("population", reply_markup=markup)
+    menu(update, context)
 
 
-@log
-def construction(update: Update, context: CallbackContext):
+def construction(update, context):
     update.message.reply_text(
-        "Строительство", reply_markup=markup)
+        "construction", reply_markup=markup)
+    menu(update, context)
 
 
-@log
-def foreign_policy(update: Update, context: CallbackContext):
+def foreign_policy(update, context):
     update.message.reply_text(
-        "Внешняя политика", reply_markup=markup)
+        "foreign_policy", reply_markup=markup)
+    menu(update, context)
 
 
-def run():
+def main():
     updater = Updater(API_KEY)
     dp = updater.dispatcher
-
-    dp.add_handler(MessageHandler(Filters.text("Ресурсы"), resources))
-    dp.add_handler(MessageHandler(Filters.text("Рынок"), market))
-    dp.add_handler(MessageHandler(Filters.text("Население"), population))
-    dp.add_handler(MessageHandler(Filters.text("Строительство"), construction))
-    dp.add_handler(MessageHandler(Filters.text("Внешняя политика"), foreign_policy))
+    dp.add_handler(CommandHandler("resources", resources))
+    dp.add_handler(CommandHandler("market", market))
+    dp.add_handler(CommandHandler("population", population))
+    dp.add_handler(CommandHandler("construction", construction))
+    dp.add_handler(CommandHandler("foreign_policy", foreign_policy))
+    dp.add_handler((CommandHandler("menu", menu)))
 
     updater.start_polling()
     updater.idle()
 
 
 if __name__ == '__main__':
-    run()
+    main()
