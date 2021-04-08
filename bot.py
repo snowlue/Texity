@@ -17,10 +17,12 @@ markup = ReplyKeyboardMarkup([['Ресурсы', 'Рынок'],
                               ['Внешняя политика']], one_time_keyboard=False)
 MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY = range(6)
 
+
 @log
 def menu(update: Update, context: CallbackContext):
     update.message.reply_text("Добро пожаловать в Город {}.format(name_of_city)", reply_markup=markup)
     return MENU
+
 
 @log
 def resources(update: Update, context: CallbackContext):
@@ -47,9 +49,11 @@ def population(update: Update, context: CallbackContext):
 
 @log
 def construction(update: Update, context: CallbackContext):
-    construction_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
+    construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
+                                               ['Железный рудник', 'Золотой рудник'],
+                                               [['Вернуться в меню']]], one_time_keyboard=False)
     update.message.reply_text(
-        "Строительство", reply_markup=construction_markup)
+        "Каких производств желаете построить?", reply_markup=construction_markup)
     return CONSTRUCTION
 
 
