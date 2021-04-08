@@ -24,6 +24,7 @@ list_of_players = [i for i in cur.execute('''SELECT tg_id FROM cities''').fetcha
 NAME_OF_CITY = ''
 USER = ''
 
+
 @log
 def start(update: Update, context: CallbackContext) -> int:
     global NAME_OF_CITY, USER
@@ -72,9 +73,27 @@ def menu(update: Update, context: CallbackContext):
 
 @log
 def resources(update: Update, context: CallbackContext):
+    global NAME_OF_CITY, USER
     resources_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
     update.message.reply_text(
         "Ваши ресурсы", reply_markup=resources_markup)
+    user_id = update.message.from_user.id
+    print(user_id)
+    name = update.message.text
+    # в name попадаеет /start
+    if user_id in list_of_players:
+        resources_1 = cur.execute('''SELECT farms FROM cities WHERE tg_id = {}'''.format(user_id))
+        resources_2 = cur.execute('''SELECT quarries FROM cities WHERE tg_id = {}'''.format(user_id))
+        resources_3 = cur.execute('''SELECT sawmills FROM cities WHERE tg_id = {}'''.format(user_id))
+        resources_4 = cur.execute('''SELECT iron mines FROM cities WHERE tg_id = {}'''.format(user_id))
+        resources_5 = cur.execute('''SELECT gold mines FROM cities WHERE tg_id = {}'''.format(user_id))
+        update.message.reply_text('Фермы:' + resources_1)
+        update.message.reply_text('Каменоломни:' + resources_2)
+        update.message.reply_text('Лесопилки:' + resources_3)
+        update.message.reply_text('Железные заводы:' + resources_4)
+        update.message.reply_text('Заводы по производству золота:' + resources_5)
+    else:
+        update.message.reply_text('Нет такого пользователя')
     return RESOURCES
 
 
