@@ -82,11 +82,11 @@ def resources(update: Update, context: CallbackContext):
     name = update.message.text
     # в name попадаеет /start
     if user_id in list_of_players:
-        resources_1 = cur.execute('''SELECT farms FROM cities WHERE tg_id = {}'''.format(user_id))
-        resources_2 = cur.execute('''SELECT quarries FROM cities WHERE tg_id = {}'''.format(user_id))
-        resources_3 = cur.execute('''SELECT sawmills FROM cities WHERE tg_id = {}'''.format(user_id))
-        resources_4 = cur.execute('''SELECT iron mines FROM cities WHERE tg_id = {}'''.format(user_id))
-        resources_5 = cur.execute('''SELECT gold mines FROM cities WHERE tg_id = {}'''.format(user_id))
+        resources_1 = cur.execute('''SELECT farms FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
+        resources_2 = cur.execute('''SELECT quarries FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
+        resources_3 = cur.execute('''SELECT sawmills FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
+        resources_4 = cur.execute('''SELECT iron mines FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
+        resources_5 = cur.execute('''SELECT gold mines FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
         update.message.reply_text('Фермы:' + resources_1)
         update.message.reply_text('Каменоломни:' + resources_2)
         update.message.reply_text('Лесопилки:' + resources_3)
