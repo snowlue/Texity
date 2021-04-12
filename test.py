@@ -87,11 +87,11 @@ def resources(update: Update, context: CallbackContext):
         resources_3 = cur.execute('''SELECT sawmills FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
         resources_4 = cur.execute('''SELECT iron mines FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
         resources_5 = cur.execute('''SELECT gold mines FROM cities WHERE tg_id = {}'''.format(user_id)).fetchone()
-        update.message.reply_text('Фермы:' + str(resources_1))
-        update.message.reply_text('Каменоломни:' + str(resources_2))
-        update.message.reply_text('Лесопилки:' + str(resources_3))
-        update.message.reply_text('Железные заводы:' + str(resources_4))
-        update.message.reply_text('Заводы по производству золота:' + str(resources_5))
+        update.message.reply_text('Фермы:' + resources_1)
+        update.message.reply_text('Каменоломни:' + resources_2)
+        update.message.reply_text('Лесопилки:' + resources_3)
+        update.message.reply_text('Железные заводы:' + resources_4)
+        update.message.reply_text('Заводы по производству золота:' + resources_5)
     else:
         update.message.reply_text('Нет такого пользователя')
     return RESOURCES
