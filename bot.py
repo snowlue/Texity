@@ -1,68 +1,76 @@
 from secrets import API_KEY
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
-from telegram.ext import (
-    Updater,
-    CommandHandler,
-    MessageHandler,
-    Filters,
-    ConversationHandler,
-    CallbackContext,
-)
+from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
+                          Filters, MessageHandler, Updater)
 
+from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES,
+                  con, construction, cur, foreign_policy, list_of_players,
+                  market, population, resources)
 from logger import log
 
 markup = ReplyKeyboardMarkup([['Ресурсы', 'Рынок'],
                               ['Население', 'Строительство'],
-                              ['Внешняя политика']], one_time_keyboard=False)
-MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY = range(6)
+                              ['Внешняя политика']],
+                             one_time_keyboard=False, resize_keyboard=True)
+WAITING_FOR_CITY_NAME, MENU = range(2)
 
 
 @log
-def menu(update: Update, context: CallbackContext):
-    update.message.reply_text("Добро пожаловать в Город {}.format(name_of_city)", reply_markup=markup)
+def start(update: Update, context: CallbackContext) -> int:
+    user_id = update.message.from_user.id
+    if user_id not in list_of_players:
+        update.message.reply_text(
+            '''
+Приветствуем тебя в Texity - пошаговой стратегии, в которой ты можешь развивать свой город, чтобы достичь светлого экономического будущего.
+
+Итак, введи имя своего города! ''',
+        )
+
+        return WAITING_FOR_CITY_NAME
+
+    context.chat_data['city_name'] = cur.execute(
+        'SELECT city FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    update.message.reply_text("Вновь добро пожаловать в {}!".format(
+        context.chat_data['city_name']), reply_markup=markup)
     return MENU
 
 
 @log
-def resources(update: Update, context: CallbackContext):
-    resources_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
-    update.message.reply_text(
-        "Ваши ресурсы", reply_markup=resources_markup)
-    return RESOURCES
+def set_name(update: Update, context: CallbackContext) -> int:
+    name, user_id = update.message.text, update.message.from_user.id
+    update.message.reply_text('''
+Прекрасный выбор! Мы уверены, что ваш город с гордым именем {} ждут небывалые свершения.
+Удачи, император! ✊🏻
+Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
+    '''.format(name),
+    )
+    
+    cur.execute('''INSERT INTO cities VALUES ({}, "{}")'''.format(user_id, name))
+    cur.execute('''INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'''.format(user_id))
+    cur.execute('''INSERT INTO resources VALUES ({}, 1000, 1000, 1000, 1000, 1000)'''.format(user_id))
+    list_of_players.append(user_id)
+    con.commit()
+    context.chat_data['city_name'] = name
+
+    update.message.reply_text("Добро пожаловать в {}!".format(context.chat_data['city_name']), reply_markup=markup)
+    return MENU
 
 
 @log
-def market(update: Update, context: CallbackContext):
-    market_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
+def help(update: Update, context: CallbackContext) -> int:
+    # todo: Вызввать админов или порешать, как должен работать /help
     update.message.reply_text(
-        "Рынок", reply_markup=market_markup)
-    return MARKET
+        'Мир суров. Поэтому рабирайся сам.', reply_markup=ReplyKeyboardRemove()
+    )
+
+    return ConversationHandler.END
 
 
 @log
-def population(update: Update, context: CallbackContext):
-    population_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
-    update.message.reply_text("Ваше население", reply_markup=population_markup)
-    return POPULATION
-
-
-@log
-def construction(update: Update, context: CallbackContext):
-    construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
-                                               ['Железный рудник', 'Золотой рудник'],
-                                               [['Вернуться в меню']]], one_time_keyboard=False)
-    update.message.reply_text(
-        "Каких производств желаете построить?", reply_markup=construction_markup)
-    return CONSTRUCTION
-
-
-@log
-def foreign_policy(update: Update, context: CallbackContext):
-    foreign_policy_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False)
-    update.message.reply_text(
-        "Внешняя политика", reply_markup=foreign_policy_markup)
-    return FOREIGN_POLICY
+def menu(update: Update, context: CallbackContext):
+    update.message.reply_text("Добро пожаловать в {}!".format(context.chat_data['city_name']), reply_markup=markup)
+    return MENU
 
 
 def run():
@@ -70,8 +78,9 @@ def run():
     dp = updater.dispatcher
 
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler('start', menu)],
+        entry_points=[CommandHandler('start', start)],
         states={
+            WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
             MENU: [MessageHandler(Filters.regex('^(Ресурсы)$'), resources),
                    MessageHandler(Filters.regex('^(Рынок)$'), market),
                    MessageHandler(Filters.regex('^(Население)$'), population),
@@ -90,7 +99,3 @@ def run():
 
     updater.start_polling()
     updater.idle()
-
-
-if __name__ == '__main__':
-    run()
