@@ -4,16 +4,17 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES,
+from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, WAITING_FOR_CITY_NAME, MENU, NOT_ENOUGH_GOLD, SUCCESSFUL_BUYING, BAD_SUMM,
                   con, construction, cur, foreign_policy, list_of_players,
-                  market, population, resources)
+                  market, population, resources, get_info_about_city, buy_food, successful_buying, not_enough_gold, check_food_and_wood)
 from logger import log
 
-markup = ReplyKeyboardMarkup([['Ресурсы', 'Рынок'],
+markup = ReplyKeyboardMarkup([['Город'],
+                              ['Ресурсы', 'Рынок'],
                               ['Население', 'Строительство'],
                               ['Внешняя политика']],
                              one_time_keyboard=False, resize_keyboard=True)
-WAITING_FOR_CITY_NAME, MENU = range(2)
+
 
 
 @log
@@ -73,6 +74,7 @@ def menu(update: Update, context: CallbackContext):
     return MENU
 
 
+
 def run():
     updater = Updater(API_KEY)
     dp = updater.dispatcher
@@ -81,16 +83,23 @@ def run():
         entry_points=[CommandHandler('start', start)],
         states={
             WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
-            MENU: [MessageHandler(Filters.regex('^(Ресурсы)$'), resources),
+            MENU: [MessageHandler(Filters.regex('^(Город)$'), get_info_about_city),
+                   MessageHandler(Filters.regex('^(Ресурсы)$'), resources),
                    MessageHandler(Filters.regex('^(Рынок)$'), market),
                    MessageHandler(Filters.regex('^(Население)$'), population),
                    MessageHandler(Filters.regex('^(Строительство)$'), construction),
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                     MessageHandler(Filters.regex('^(Еда)$'), buy_food)],
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             CONSTRUCTION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_food_and_wood)],
+            CHANGE_OR_GO_TO_MENU: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                              MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
+
         },
         fallbacks=[CommandHandler('cancel', menu)],
     )
@@ -99,3 +108,5 @@ def run():
 
     updater.start_polling()
     updater.idle()
+
+run()
