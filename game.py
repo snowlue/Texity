@@ -44,7 +44,8 @@ def resources(update: Update, context: CallbackContext):
     if user_id in list_of_players:
         stone = cur.execute('SELECT stone FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         wood = cur.execute('SELECT wood FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-        #        iron = cur.execute('SELECT iron FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+        food = cur.execute('SELECT food FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+        iron = cur.execute('SELECT iron FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         gold_ore = cur.execute('SELECT gold_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         iron_ore = cur.execute('SELECT iron_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
@@ -52,10 +53,10 @@ def resources(update: Update, context: CallbackContext):
                                   'Еда: {}\n'
                                   'Камни: {}\n'
                                   'Дерево: {}\n'
+                                  'Железо: {}\n'
                                   'Золото: {}\n'
                                   'Золотая руда: {}\n'
-                                  'Железо: {}\n'
-                                  'Железная руда: {}'.format('', stone, wood, '', gold, gold_ore, iron_ore),
+                                  'Железная руда: {}'.format(food, stone, wood, iron, gold, gold_ore, iron_ore),
                                   reply_markup=resources_markup)
     else:
         update.message.reply_text('Нет такого пользователя ¯\_(ツ)_/¯')
@@ -66,60 +67,76 @@ def resources(update: Update, context: CallbackContext):
 def market(update: Update, context: CallbackContext):
     market_markup = ReplyKeyboardMarkup([['Еда', 'Дерево'],
                                          ['Камни', 'Железо'],
-                                         ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
+                                         ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
     update.message.reply_text("Рынок", reply_markup=market_markup)
     return MARKET
 
 
 def buy_food(update: Update, context: CallbackContext):
-    markup = ReplyKeyboardMarkup([], one_time_keyboard=False,
-                                 resize_keyboard=True)
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды', reply_markup=markup)
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
+    context.chat_data['material'] = 'wood'
     return WAITING_FOR_SUMM
 
 
-def check_food_and_wood(update: Update, context: CallbackContext):
+def buy_wood(update: Update, context: CallbackContext):
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
+    context.chat_data['material'] = 'wood'
+    return WAITING_FOR_SUMM
+
+
+def buy_stone(update: Update, context: CallbackContext):
+    update.message.reply_text('За 1 единицу золота вы получите 1 единицу камня')
+    context.chat_data['material'] = 'stone'
+    return WAITING_FOR_SUMM
+
+
+def buy_iron(update: Update, context: CallbackContext):
+    update.message.reply_text('За 1 единицу золота вы получите 1 единицу железа')
+    context.chat_data['material'] = 'iron'
+    return WAITING_FOR_SUMM
+
+
+def check_summ(update: Update, context: CallbackContext):
     gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
+                                      resize_keyboard=True)
+    markup_success = ReplyKeyboardMarkup([['Продолжить покупки'], ['Вернуться в меню']], one_time_keyboard=False,
+                                         resize_keyboard=True)
+    summ = int(update.message.text)
     try:
-        if int(update.message.text) > gold:
-            markup = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
-                                         resize_keyboard=True)
-            update.message.reply_text('К сожалению, у вас недостаточно золота!', reply_markup=markup)
+        if summ > gold:
+            update.message.reply_text('К сожалению, у вас недостаточно золота!', reply_markup=markup_fail)
             return CHANGE_OR_GO_TO_MENU
-        elif int(update.message.text) <= 0:
-            markup = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
-                                         resize_keyboard=True)
-            update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
-                                      reply_markup=markup)
-            return CHANGE_OR_GO_TO_MENU
+        elif summ <= 0:
+            raise ValueError
         else:
-            update.message.reply_text('Покупка прошла упешно!')
-            return MENU
+            update.message.reply_text('Покупка прошла упешно!', reply_markup=markup_success)
+            tranzaction(context.chat_data['material'], summ, update.message.from_user.id)
+            print(cur.execute(
+                'SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0])
+            return SUCCESSFUL_BUYING
     except ValueError:
-        markup = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
-                                     resize_keyboard=True)
-        update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.', reply_markup=markup)
+        update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
+                                  reply_markup=markup_fail)
         return CHANGE_OR_GO_TO_MENU
 
 
-def successful_buying(update: Update, context: CallbackContext):
-    update.message.reply_text('Покупка прошла упешно!')
-    return MENU
-
-
-def not_enough_gold(update: Update, context: CallbackContext):
-    markup = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
-                                 resize_keyboard=True)
-    update.message.reply_text('К сожалению, у вас недостаточно золота!', reply_markup=markup)
-    return CHANGE_OR_GO_TO_MENU
-
-
-def bad_summ(update: Update, context: CallbackContext):
-    print('oooooooooooooooo')
-    markup = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
-                                 resize_keyboard=True)
-    update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.', reply_markup=markup)
-    return CHANGE_OR_GO_TO_MENU
+def tranzaction(type_of_material, summ, user):
+    print(user)
+    cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {}) - {}'.format(user, summ))
+    con.commit()
+    if type_of_material == 'food':
+        cur.execute(
+            'UPDATE resources SET food = (SELECT food FROM resources WHERE tg_id = {}) + 5 * {}'.format(user, summ))
+    elif type_of_material == 'wood':
+        cur.execute(
+            'UPDATE resources SET wood = (SELECT wood FROM resources WHERE tg_id = {}) + 5 * {}'.format(user, summ))
+    elif type_of_material == 'stone':
+        cur.execute(
+            'UPDATE resources SET stone = (SELECT stone FROM resources WHERE tg_id = {}) + {}'.format(user, summ))
+    elif type_of_material == 'iron':
+        cur.execute('UPDATE resources SET iron = (SELECT iron FROM resources WHERE tg_id = {}) + {}'.format(user, summ))
+    con.commit()
 
 
 @log

@@ -4,9 +4,9 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, WAITING_FOR_CITY_NAME, MENU, NOT_ENOUGH_GOLD, SUCCESSFUL_BUYING, BAD_SUMM,
+from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, WAITING_FOR_CITY_NAME, MENU, SUCCESSFUL_BUYING, BAD_SUMM,
                   con, construction, cur, foreign_policy, list_of_players,
-                  market, population, resources, get_info_about_city, buy_food, successful_buying, not_enough_gold, check_food_and_wood)
+                  market, population, resources, get_info_about_city, buy_food, buy_wood, buy_iron, buy_stone, check_summ)
 from logger import log
 
 markup = ReplyKeyboardMarkup([['Город'],
@@ -91,14 +91,20 @@ def run():
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                     MessageHandler(Filters.regex('^(Еда)$'), buy_food)],
+                     MessageHandler(Filters.regex('^(Еда)$'), buy_food),
+                     MessageHandler(Filters.regex('^(Дерево)$'), buy_wood),
+                     MessageHandler(Filters.regex('^(Камни)$'), buy_stone),
+                     MessageHandler(Filters.regex('^(Железо)$'), buy_iron),
+                     ],
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             CONSTRUCTION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_food_and_wood)],
+            WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_summ)],
             CHANGE_OR_GO_TO_MENU: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                               MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
+            SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                              MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)]
 
         },
         fallbacks=[CommandHandler('cancel', menu)],
