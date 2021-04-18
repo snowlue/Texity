@@ -1,5 +1,5 @@
 from secrets import API_KEY
-
+from PIL import Image
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
@@ -9,6 +9,8 @@ from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, I
                   market, population, resources, get_info_about_city, buy_food, buy_wood, buy_iron, buy_stone, check_summ,
                   build_farms, build_quarries, build_sawmills, build_gold_mines, build_iron_mines, check_build, tranzaction_build)
 from logger import log
+img_city = Image.open("city.jpg")
+img_market = Image.open("market.jpg")
 
 markup = ReplyKeyboardMarkup([['Город'],
                               ['Ресурсы', 'Рынок'],
@@ -71,6 +73,7 @@ def help(update: Update, context: CallbackContext) -> int:
 
 @log
 def menu(update: Update, context: CallbackContext):
+    update.message.reply_text(img_city)
     update.message.reply_text("Добро пожаловать в {}!".format(context.chat_data['city_name']), reply_markup=markup)
     return MENU
 
