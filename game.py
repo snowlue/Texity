@@ -1,9 +1,13 @@
 import sqlite3
 
+from PIL import Image
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CallbackContext
 
+
 from logger import log
+img_city = Image.open("city.jpg")
+img_market = Image.open("market.jpg")
 
 con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
@@ -79,6 +83,7 @@ def market(update: Update, context: CallbackContext):
                                          ['Камни', 'Железо'],
                                          ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
     update.message.reply_text("Рынок", reply_markup=market_markup)
+    update.message.reply_text(img_market)
     return MARKET
 
 
