@@ -4,9 +4,10 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, WAITING_FOR_CITY_NAME, MENU, SUCCESSFUL_BUYING, BAD_SUMM,
+from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, WAITING_FOR_CITY_NAME, MENU, SUCCESSFUL_BUYING, SUCCESSFUL_BUILD, WAITING_FOR_COUNT_TO_BUILD,
                   con, construction, cur, foreign_policy, list_of_players,
-                  market, population, resources, get_info_about_city, buy_food, buy_wood, buy_iron, buy_stone, check_summ)
+                  market, population, resources, get_info_about_city, buy_food, buy_wood, buy_iron, buy_stone, check_summ,
+                  build_farms, build_quarries, build_sawmills, build_gold_mines, build_iron_mines, check_build, tranzaction_build)
 from logger import log
 
 markup = ReplyKeyboardMarkup([['Город'],
@@ -97,14 +98,23 @@ def run():
                      MessageHandler(Filters.regex('^(Железо)$'), buy_iron),
                      ],
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            CONSTRUCTION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            CONSTRUCTION: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
+                           MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
+                           MessageHandler(Filters.regex('^(Каменоломня)$'), build_quarries),
+                           MessageHandler(Filters.regex('^(Золотой рудник)$'), build_gold_mines),
+                           MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
+                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)
+                           ],
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_summ)],
-            CHANGE_OR_GO_TO_MENU: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+            WAITING_FOR_COUNT_TO_BUILD: [MessageHandler(Filters.text, check_build)],
+            CHANGE_OR_GO_TO_MENU_MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                               MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
             SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                              MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)]
+                              MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
+            SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)]
 
         },
         fallbacks=[CommandHandler('cancel', menu)],

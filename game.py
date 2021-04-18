@@ -9,10 +9,20 @@ con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
 list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchall()]
 
-RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING = range(
+RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING = range(
     2, 13)
 WAITING_FOR_CITY_NAME, MENU = range(2)
+WAITING_FOR_COUNT_TO_BUILD = 14
+SUCCESSFUL_BUILD = 15
+CHANGE_OR_GO_TO_MENU_BUILDINGS = 16
 
+PRICE_OF_BUILDINGS = {
+    'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+    'sawmills': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+    'quarries': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+    'iron_mines': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+    'gold_mines': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]
+}
 
 @log
 def get_info_about_city(update: Update, context: CallbackContext):
@@ -79,7 +89,7 @@ def buy_food(update: Update, context: CallbackContext):
 
 
 def buy_wood(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц дерева')
     context.chat_data['material'] = 'wood'
     return WAITING_FOR_SUMM
 
@@ -106,36 +116,119 @@ def check_summ(update: Update, context: CallbackContext):
     try:
         if summ > gold:
             update.message.reply_text('К сожалению, у вас недостаточно золота!', reply_markup=markup_fail)
-            return CHANGE_OR_GO_TO_MENU
+            return CHANGE_OR_GO_TO_MENU_MARKET
         elif summ <= 0:
             raise ValueError
         else:
             update.message.reply_text('Покупка прошла упешно!', reply_markup=markup_success)
-            tranzaction(context.chat_data['material'], summ, update.message.from_user.id)
-            print(cur.execute(
-                'SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0])
+            tranzaction_buy(context.chat_data['material'], summ, update.message.from_user.id)
             return SUCCESSFUL_BUYING
     except ValueError:
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
                                   reply_markup=markup_fail)
-        return CHANGE_OR_GO_TO_MENU
+        return CHANGE_OR_GO_TO_MENU_MARKET
 
 
-def tranzaction(type_of_material, summ, user):
-    print(user)
+def build_farms(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одной фермы составляет: \n'
+                              ' 240 дерева \n'
+                              ' 120 железа \n'
+                              ' 240 дерева \n'
+                              ' 200 еды для рабочих')
+    context.chat_data['to_build'] = 'farms'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+def build_quarries(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одной каменоломни составляет: \n'
+                              ' 240 дерева \n'
+                              ' 120 железа \n'
+                              ' 240 дерева \n'
+                              ' 200 еды для рабочих')
+    context.chat_data['to_build'] = 'quarries'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+def build_sawmills(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одной лесопилки составляет: \n'
+                              ' 240 дерева \n'
+                              ' 120 железа \n'
+                              ' 240 дерева \n'
+                              ' 200 еды для рабочих')
+    context.chat_data['to_build'] = 'sawmills'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+def build_iron_mines(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одной железной шахты составляет: \n'
+                              ' 240 дерева \n'
+                              ' 120 железа \n'
+                              ' 240 дерева \n'
+                              ' 200 еды для рабочих')
+    context.chat_data['to_build'] = 'iron_mines'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+def build_gold_mines(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного золотого рудника составляет: \n'
+                              ' 240 дерева \n'
+                              ' 120 железа \n'
+                              ' 240 дерева \n'
+                              ' 200 еды для рабочих')
+    context.chat_data['to_build'] = 'gold_mines'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+def check_build(update: Update, context: CallbackContext):
+    count_of_buildings = int(update.message.text)
+    markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
+                                      resize_keyboard=True)
+    markup_success = ReplyKeyboardMarkup([['Продолжить строительство'], ['Вернуться в меню']], one_time_keyboard=False,
+                                         resize_keyboard=True)
+    try:
+        spisok = []
+        if count_of_buildings <= 0:
+            raise ValueError
+        for i in PRICE_OF_BUILDINGS[context.chat_data['to_build']]:
+            total_count_of_resources = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(i[0], update.message.from_user.id)).fetchone()[0]
+            if i[1] * count_of_buildings > total_count_of_resources:
+                update.message.reply_text('К сожалению, у вас недостаточно ресурсов!', reply_markup=markup_fail)
+                return CHANGE_OR_GO_TO_MENU_BUILDINGS
+            spisok.append([i[0], i[1] * count_of_buildings])
+        else:
+            update.message.reply_text('Вы успешно построили предприятия!', reply_markup=markup_success)
+            tranzaction_build(spisok[0][0], spisok[0][1], spisok[1][0], spisok[1][1], spisok[2][0], spisok[2][1],
+                              context.chat_data['to_build'], count_of_buildings, update.message.from_user.id)
+            return SUCCESSFUL_BUILD
+    except ValueError:
+        update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
+                                  reply_markup=markup_fail)
+        return CHANGE_OR_GO_TO_MENU_BUILDINGS
+
+
+def tranzaction_buy(type_of_material, summ, user):
     cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {}) - {}'.format(user, summ))
+    cur.execute(
+        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) + 5 * {}'.format(type_of_material,
+                                                                                                type_of_material, user,
+                                                                                                summ))
     con.commit()
-    if type_of_material == 'food':
-        cur.execute(
-            'UPDATE resources SET food = (SELECT food FROM resources WHERE tg_id = {}) + 5 * {}'.format(user, summ))
-    elif type_of_material == 'wood':
-        cur.execute(
-            'UPDATE resources SET wood = (SELECT wood FROM resources WHERE tg_id = {}) + 5 * {}'.format(user, summ))
-    elif type_of_material == 'stone':
-        cur.execute(
-            'UPDATE resources SET stone = (SELECT stone FROM resources WHERE tg_id = {}) + {}'.format(user, summ))
-    elif type_of_material == 'iron':
-        cur.execute('UPDATE resources SET iron = (SELECT iron FROM resources WHERE tg_id = {}) + {}'.format(user, summ))
+
+
+def tranzaction_build(type_1, count_1, type_2, count_2, type_3, count_3, building, count_of_buildings, user):
+    print(type_1, type_1, user, count_1)
+    cur.execute(
+        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_1, type_1, user,
+                                                                                            count_1))
+    cur.execute(
+        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_2, type_2, user,
+                                                                                            count_2))
+    cur.execute(
+        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_3, type_3, user,
+                                                                                            count_3))
+    cur.execute(
+        'UPDATE buildings SET {} = (SELECT {} FROM buildings WHERE tg_id = {}) + {}'.format(building, building, user,
+                                                                                           count_of_buildings))
     con.commit()
 
 
@@ -150,7 +243,7 @@ def population(update: Update, context: CallbackContext):
 def construction(update: Update, context: CallbackContext):
     construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
                                                ['Железный рудник', 'Золотой рудник'],
-                                               ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
+                                               ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
     update.message.reply_text(
         "Каких производств желаете построить?", reply_markup=construction_markup)
     return CONSTRUCTION
