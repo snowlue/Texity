@@ -1,25 +1,20 @@
 import sqlite3
 
-from PIL import Image
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import CallbackContext
 
-
 from logger import log
-img_city = Image.open("city.jpg")
-img_market = Image.open("market.jpg")
+
+img_market = open("market.jpg", 'rb')
 
 con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
 list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchall()]
 
-RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING = range(
-    2, 13)
+RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO = range(2, 8)
+WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING = range(8, 13)
+WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS = range(14, 17)
 WAITING_FOR_CITY_NAME, MENU = range(2)
-WAITING_FOR_COUNT_TO_BUILD = 14
-SUCCESSFUL_BUILD = 15
-CHANGE_OR_GO_TO_MENU_BUILDINGS = 16
-
 PRICE_OF_BUILDINGS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
     'sawmills': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
@@ -64,13 +59,13 @@ def resources(update: Update, context: CallbackContext):
         gold_ore = cur.execute('SELECT gold_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         iron_ore = cur.execute('SELECT iron_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
         update.message.reply_text('Ваши ресурсы\n'
-                                  'Еда: {}\n'
-                                  'Камни: {}\n'
-                                  'Дерево: {}\n'
-                                  'Железо: {}\n'
-                                  'Золото: {}\n'
-                                  'Золотая руда: {}\n'
-                                  'Железная руда: {}'.format(food, stone, wood, iron, gold, gold_ore, iron_ore),
+                                  '🥩 Еда: {}\n'
+                                  '🪨 Камни: {}\n'
+                                  '🪵 Дерево: {}\n'
+                                  '🥈 Железо: {}\n'
+                                  '💰 Золото: {}\n'
+                                  '🏭 Золотая руда: {}\n'
+                                  '🏭 Железная руда: {}'.format(food, stone, wood, iron, gold, gold_ore, iron_ore),
                                   reply_markup=resources_markup)
     else:
         update.message.reply_text('Нет такого пользователя ¯\_(ツ)_/¯')
@@ -82,8 +77,8 @@ def market(update: Update, context: CallbackContext):
     market_markup = ReplyKeyboardMarkup([['Еда', 'Дерево'],
                                          ['Камни', 'Железо'],
                                          ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
-    update.message.reply_text("Рынок", reply_markup=market_markup)
-    update.message.reply_text(img_market)
+    update.message.reply_photo(img_market, "Рынок", reply_markup=market_markup)
+    img_market.seek(0)
     return MARKET
 
 
@@ -212,28 +207,23 @@ def check_build(update: Update, context: CallbackContext):
 
 
 def tranzaction_buy(type_of_material, summ, user):
-    cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {}) - {}'.format(user, summ))
-    cur.execute(
-        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) + 5 * {}'.format(type_of_material,
-                                                                                                type_of_material, user,
-                                                                                                summ))
+    cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {0}) - {1} '
+                'WHERE th_id = {0}'.format(user, summ))
+    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) + 5 * {3} '
+                'WHERE th_id = {2}'.format(type_of_material, type_of_material, user, summ))
     con.commit()
 
 
 def tranzaction_build(type_1, count_1, type_2, count_2, type_3, count_3, building, count_of_buildings, user):
     print(type_1, type_1, user, count_1)
-    cur.execute(
-        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_1, type_1, user,
-                                                                                            count_1))
-    cur.execute(
-        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_2, type_2, user,
-                                                                                            count_2))
-    cur.execute(
-        'UPDATE resources SET {} = (SELECT {} FROM resources WHERE tg_id = {}) - {}'.format(type_3, type_3, user,
-                                                                                            count_3))
-    cur.execute(
-        'UPDATE buildings SET {} = (SELECT {} FROM buildings WHERE tg_id = {}) + {}'.format(building, building, user,
-                                                                                           count_of_buildings))
+    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
+                'WHERE tg_id = {2}'.format(type_1, type_1, user, count_1))
+    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
+                'WHERE tg_id = {2}'.format(type_2, type_2, user, count_2))
+    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
+                'WHERE tg_id = {2}'.format(type_3, type_3, user, count_3))
+    cur.execute('UPDATE buildings SET {0} = (SELECT {0} FROM buildings WHERE tg_id = {1}) + {2} '
+                'WHERE tg_id = {1}'.format(building, user, count_of_buildings))
     con.commit()
 
 

@@ -1,23 +1,28 @@
 from secrets import API_KEY
-from PIL import Image
+
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CONSTRUCTION, FOREIGN_POLICY, MARKET, POPULATION, RESOURCES, INFO, WAITING_FOR_SUMM, CHANGE_OR_GO_TO_MENU_MARKET, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_CITY_NAME, MENU, SUCCESSFUL_BUYING, SUCCESSFUL_BUILD, WAITING_FOR_COUNT_TO_BUILD,
-                  con, construction, cur, foreign_policy, list_of_players,
-                  market, population, resources, get_info_about_city, buy_food, buy_wood, buy_iron, buy_stone, check_summ,
-                  build_farms, build_quarries, build_sawmills, build_gold_mines, build_iron_mines, check_build, tranzaction_build)
+from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
+                  CONSTRUCTION, FOREIGN_POLICY, INFO, MARKET, MENU, POPULATION,
+                  RESOURCES, SUCCESSFUL_BUILD, SUCCESSFUL_BUYING,
+                  WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_TO_BUILD,
+                  WAITING_FOR_SUMM, build_farms, build_gold_mines,
+                  build_iron_mines, build_quarries, build_sawmills, buy_food,
+                  buy_iron, buy_stone, buy_wood, check_build, check_summ, con,
+                  construction, cur, foreign_policy, get_info_about_city,
+                  list_of_players, market, population, resources,
+                  tranzaction_build)
 from logger import log
-img_city = Image.open("city.jpg")
-img_market = Image.open("market.jpg")
+
+img_city = open("city.jpg", 'rb')
 
 markup = ReplyKeyboardMarkup([['Город'],
                               ['Ресурсы', 'Рынок'],
                               ['Население', 'Строительство'],
                               ['Внешняя политика']],
                              one_time_keyboard=False, resize_keyboard=True)
-
 
 
 @log
@@ -35,8 +40,10 @@ def start(update: Update, context: CallbackContext) -> int:
 
     context.chat_data['city_name'] = cur.execute(
         'SELECT city FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    update.message.reply_text("Вновь добро пожаловать в {}!".format(
-        context.chat_data['city_name']), reply_markup=markup)
+    update.message.reply_photo(img_city,
+                               "Вновь добро пожаловать в {}!".format(context.chat_data['city_name']),
+                               reply_markup=markup)
+    img_city.seek(0)
     return MENU
 
 
@@ -49,7 +56,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
 Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
     '''.format(name),
     )
-    
+
     cur.execute('''INSERT INTO cities VALUES ({}, "{}")'''.format(user_id, name))
     cur.execute('''INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'''.format(user_id))
     cur.execute('''INSERT INTO resources VALUES ({}, 1000, 1000, 1000, 1000, 1000)'''.format(user_id))
@@ -57,7 +64,10 @@ def set_name(update: Update, context: CallbackContext) -> int:
     con.commit()
     context.chat_data['city_name'] = name
 
-    update.message.reply_text("Добро пожаловать в {}!".format(context.chat_data['city_name']), reply_markup=markup)
+    update.message.reply_photo(img_city,
+                               "Добро пожаловать в {}!".format(context.chat_data['city_name']),
+                               reply_markup=markup)
+    img_city.seek(0)
     return MENU
 
 
@@ -73,10 +83,11 @@ def help(update: Update, context: CallbackContext) -> int:
 
 @log
 def menu(update: Update, context: CallbackContext):
-    update.message.reply_text(img_city)
-    update.message.reply_text("Добро пожаловать в {}!".format(context.chat_data['city_name']), reply_markup=markup)
+    update.message.reply_photo(img_city,
+                               "Добро пожаловать в {}!".format(context.chat_data['city_name']),
+                               reply_markup=markup)
+    img_city.seek(0)
     return MENU
-
 
 
 def run():
@@ -113,13 +124,13 @@ def run():
             WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_summ)],
             WAITING_FOR_COUNT_TO_BUILD: [MessageHandler(Filters.text, check_build)],
             CHANGE_OR_GO_TO_MENU_MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                              MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
+                                          MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
             CHANGE_OR_GO_TO_MENU_BUILDINGS: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                          MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction)],
+                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction)],
             SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                              MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
+                                MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
             SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)]
+                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)]
 
         },
         fallbacks=[CommandHandler('cancel', menu)],
@@ -129,5 +140,6 @@ def run():
 
     updater.start_polling()
     updater.idle()
+
 
 run()
