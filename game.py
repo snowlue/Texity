@@ -84,7 +84,7 @@ def market(update: Update, context: CallbackContext):
 
 def buy_food(update: Update, context: CallbackContext):
     update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
-    context.chat_data['material'] = 'wood'
+    context.chat_data['material'] = 'food'
     return WAITING_FOR_SUMM
 
 
@@ -112,8 +112,8 @@ def check_summ(update: Update, context: CallbackContext):
                                       resize_keyboard=True)
     markup_success = ReplyKeyboardMarkup([['Продолжить покупки'], ['Вернуться в меню']], one_time_keyboard=False,
                                          resize_keyboard=True)
-    summ = int(update.message.text)
     try:
+        summ = int(update.message.text)
         if summ > gold:
             update.message.reply_text('К сожалению, у вас недостаточно золота!', reply_markup=markup_fail)
             return CHANGE_OR_GO_TO_MENU_MARKET
@@ -207,10 +207,11 @@ def check_build(update: Update, context: CallbackContext):
 
 
 def tranzaction_buy(type_of_material, summ, user):
+    print(type_of_material, summ, user)
     cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {0}) - {1} '
-                'WHERE th_id = {0}'.format(user, summ))
-    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) + 5 * {3} '
-                'WHERE th_id = {2}'.format(type_of_material, type_of_material, user, summ))
+                'WHERE tg_id = {0}'.format(user, summ))
+    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) + 5 * {2} '
+                'WHERE tg_id = {1}'.format(type_of_material, user, summ))
     con.commit()
 
 
