@@ -4,16 +4,16 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
+from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET, CHANGE_OR_GO_TO_MENU_REMELTING, SUCCESSFUL_REMELTING,
                   CONSTRUCTION, FOREIGN_POLICY, INFO, MARKET, MENU, POPULATION,
                   RESOURCES, SUCCESSFUL_BUILD, SUCCESSFUL_BUYING,
                   WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_TO_BUILD,
-                  WAITING_FOR_SUMM, build_farms, build_gold_mines,
+                  WAITING_FOR_SUM_TO_BUY, WAITING_FOR_TYPE_OF_METAL, WAITING_FOR_COUNT_OF_METAL,
+                  build_farms, build_gold_mines, remelting, remelt_gold,
                   build_iron_mines, build_quarries, build_sawmills, buy_food,
-                  buy_iron, buy_stone, buy_wood, check_build, check_summ, con,
+                  buy_iron, buy_stone, buy_wood, check_build, check_buy, con,
                   construction, cur, foreign_policy, get_info_about_city,
-                  list_of_players, market, population, resources,
-                  tranzaction_build)
+                  list_of_players, market, population, resources, check_remelt, remelt_iron)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -55,7 +55,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
 Удачи, император! ✊🏻
 Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
     '''.format(name),
-    )
+                              )
 
     cur.execute('''INSERT INTO cities VALUES ({}, "{}")'''.format(user_id, name))
     cur.execute('''INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'''.format(user_id))
@@ -97,14 +97,14 @@ def run():
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler('start', start)],
         states={
-            WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
             MENU: [MessageHandler(Filters.regex('^(Город)$'), get_info_about_city),
                    MessageHandler(Filters.regex('^(Ресурсы)$'), resources),
                    MessageHandler(Filters.regex('^(Рынок)$'), market),
                    MessageHandler(Filters.regex('^(Население)$'), population),
                    MessageHandler(Filters.regex('^(Строительство)$'), construction),
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
-            RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                        MessageHandler(Filters.regex('^(Переплавить руду)$'), remelting)],
             MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                      MessageHandler(Filters.regex('^(Еда)$'), buy_food),
                      MessageHandler(Filters.regex('^(Дерево)$'), buy_wood),
@@ -121,16 +121,29 @@ def run():
                            ],
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            WAITING_FOR_SUMM: [MessageHandler(Filters.text, check_summ)],
+
+            WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
+            WAITING_FOR_SUM_TO_BUY: [MessageHandler(Filters.text, check_buy)],
             WAITING_FOR_COUNT_TO_BUILD: [MessageHandler(Filters.text, check_build)],
+            WAITING_FOR_TYPE_OF_METAL: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                        MessageHandler(Filters.regex('^(Железная руда)$'), remelt_iron),
+                                        MessageHandler(Filters.regex('^(Золотая руда)$'), remelt_gold)],
+            WAITING_FOR_COUNT_OF_METAL: [MessageHandler(Filters.text, check_remelt)],
+
             CHANGE_OR_GO_TO_MENU_MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                           MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
             CHANGE_OR_GO_TO_MENU_BUILDINGS: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                              MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction)],
+            CHANGE_OR_GO_TO_MENU_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), remelting)],
+
             SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                 MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
             SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)]
+                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)],
+            SUCCESSFUL_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)]
+
 
         },
         fallbacks=[CommandHandler('cancel', menu)],
