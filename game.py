@@ -119,13 +119,15 @@ def cultivating(update: Update, context: CallbackContext):
     increment_resourses('gold_ore', inc_gold_ore, user_id)
     increment_resourses('iron_ore', inc_iron_ore, user_id)
 
+    print(increment)
+
     update.message.reply_text('Вы собрали: \n'
                               '🥩 Еды: {}\n🪨 Камня: {}\n'
                               '🪵 Дерева: {}\n🏭 Золотой руды: {}\n'
                               '🏭 Железной руды: {}'.format(inc_food, inc_stone, inc_wood, inc_gold_ore, inc_iron_ore),
                               reply_markup=resources_markup)
 
-    cur.execute('UPDATE resources SET time = datetime({}) WHERE tg_id = {1}'.format(timenow))
+    cur.execute('UPDATE resources SET time = datetime({}) WHERE tg_id = {}'.format(timenow, user_id))
     con.commit()
 
     return RESOURCES
