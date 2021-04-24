@@ -4,16 +4,18 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET, CHANGE_OR_GO_TO_MENU_REMELTING, SUCCESSFUL_REMELTING,
-                  CONSTRUCTION, FOREIGN_POLICY, INFO, MARKET, MENU, POPULATION,
-                  RESOURCES, SUCCESSFUL_BUILD, SUCCESSFUL_BUYING,
-                  WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_TO_BUILD,
-                  WAITING_FOR_SUM_TO_BUY, WAITING_FOR_TYPE_OF_METAL, WAITING_FOR_COUNT_OF_METAL,
-                  build_farms, build_gold_mines, remelting, remelt_gold,
+from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
+                  CHANGE_OR_GO_TO_MENU_REMELTING, CONSTRUCTION, FOREIGN_POLICY,
+                  INFO, MARKET, MENU, POPULATION, RESOURCES, SUCCESSFUL_BUILD,
+                  SUCCESSFUL_BUYING, SUCCESSFUL_REMELTING,
+                  WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_OF_METAL,
+                  WAITING_FOR_COUNT_TO_BUILD, WAITING_FOR_SUM_TO_BUY,
+                  WAITING_FOR_TYPE_OF_METAL, build_farms, build_gold_mines,
                   build_iron_mines, build_quarries, build_sawmills, buy_food,
-                  buy_iron, buy_stone, buy_wood, check_build, check_buy, con,
-                  construction, cur, foreign_policy, get_info_about_city,
-                  list_of_players, market, population, resources, check_remelt, remelt_iron)
+                  buy_iron, buy_stone, buy_wood, check_build, check_buy,
+                  check_remelt, con, construction, cultivating, cur,
+                  foreign_policy, get_info_about_city, list_of_players, market,
+                  population, remelt_gold, remelt_iron, remelting, resources)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -54,8 +56,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
 Прекрасный выбор! Мы уверены, что ваш город с гордым именем {} ждут небывалые свершения.
 Удачи, император! ✊🏻
 Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
-    '''.format(name),
-                              )
+    '''.format(name))
 
     cur.execute('''INSERT INTO cities VALUES ({}, "{}")'''.format(user_id, name))
     cur.execute('''INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'''.format(user_id))
@@ -103,22 +104,26 @@ def run():
                    MessageHandler(Filters.regex('^(Население)$'), population),
                    MessageHandler(Filters.regex('^(Строительство)$'), construction),
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
+
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                        MessageHandler(Filters.regex('^(Собрать ресурсы)$'), cultivating),
                         MessageHandler(Filters.regex('^(Переплавить руду)$'), remelting)],
+
             MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                      MessageHandler(Filters.regex('^(Еда)$'), buy_food),
                      MessageHandler(Filters.regex('^(Дерево)$'), buy_wood),
                      MessageHandler(Filters.regex('^(Камни)$'), buy_stone),
-                     MessageHandler(Filters.regex('^(Железо)$'), buy_iron),
-                     ],
+                     MessageHandler(Filters.regex('^(Железо)$'), buy_iron)],
+
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+
             CONSTRUCTION: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
                            MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
                            MessageHandler(Filters.regex('^(Каменоломня)$'), build_quarries),
                            MessageHandler(Filters.regex('^(Золотой рудник)$'), build_gold_mines),
                            MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
-                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)
-                           ],
+                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 

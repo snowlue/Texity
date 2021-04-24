@@ -11,10 +11,10 @@ con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
 list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchall()]
 
-WAITING_FOR_CITY_NAME, MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO, \
-WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING, \
-WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL, \
-WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING = range(21)
+(WAITING_FOR_CITY_NAME, MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO,
+ WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING,
+ WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL,
+ WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING) = range(21)
 
 PRICE_OF_BUILDINGS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
@@ -40,14 +40,15 @@ def get_info_about_city(update: Update, context: CallbackContext):
                               '🪵 Лесопилки: {}\n'
                               '🏭 Железные рудники: {}\n'
                               '💰 Золотые рудники: {}'.format(
-        resources_1, resources_2, resources_3, resources_4, resources_5), reply_markup=resources_markup)
+                                  resources_1, resources_2, resources_3, resources_4, resources_5), reply_markup=resources_markup)
     return INFO
 
 
 @log
 def resources(update: Update, context: CallbackContext):
-    resources_markup = ReplyKeyboardMarkup([['Переплавить руду'], ['Вернуться в меню']], one_time_keyboard=False,
-                                           resize_keyboard=True)
+    resources_markup = ReplyKeyboardMarkup([['Собрать ресурсы'],
+                                            ['Переплавить руду'],
+                                            ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
     user_id = update.message.from_user.id
     stone = cur.execute('SELECT stone FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     wood = cur.execute('SELECT wood FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
@@ -57,17 +58,15 @@ def resources(update: Update, context: CallbackContext):
     gold_ore = cur.execute('SELECT gold_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     iron_ore = cur.execute('SELECT iron_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     update.message.reply_text('Ваши ресурсы\n'
-                              '🥩 Еда: {}\n'
-                              '🪨 Камни: {}\n'
-                              '🪵 Дерево: {}\n'
-                              '🥈 Железо: {}\n'
-                              '💰 Золото: {}\n'
-                              '🏭 Золотая руда: {}\n'
+                              '🥩 Еда: {}\n🪨 Камни: {}\n'
+                              '🪵 Дерево: {}\n🥈 Железо: {}\n'
+                              '💰 Золото: {}\n🏭 Золотая руда: {}\n'
                               '🏭 Железная руда: {}'.format(food, stone, wood, iron, gold, gold_ore, iron_ore),
                               reply_markup=resources_markup)
     return RESOURCES
 
 
+@log
 def market(update: Update, context: CallbackContext):
     market_markup = ReplyKeyboardMarkup([['Еда', 'Дерево'],
                                          ['Камни', 'Железо'],
@@ -77,12 +76,14 @@ def market(update: Update, context: CallbackContext):
     return MARKET
 
 
+@log
 def population(update: Update, context: CallbackContext):
     population_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
     update.message.reply_text("Ваше население", reply_markup=population_markup)
     return POPULATION
 
 
+@log
 def construction(update: Update, context: CallbackContext):
     construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
                                                ['Железный рудник', 'Золотой рудник'],
@@ -92,6 +93,7 @@ def construction(update: Update, context: CallbackContext):
     return CONSTRUCTION
 
 
+@log
 def remelting(update: Update, context: CallbackContext):
     remelting_markup = ReplyKeyboardMarkup([['Железная руда', 'Золотая руда'],
                                             ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
@@ -99,30 +101,65 @@ def remelting(update: Update, context: CallbackContext):
     return WAITING_FOR_TYPE_OF_METAL
 
 
+@log
+def cultivating(update: Update, context: CallbackContext):
+    resources_markup = ReplyKeyboardMarkup([['Собрать ресурсы'],
+                                            ['Переплавить руду'],
+                                            ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
+    user_id = update.message.from_user.id
+
+    last_cultivating = cur.execute('SELECT julianday(time)'
+                                   'FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    timenow = cur.execute('SELECT julianday("now","localtime")').fetchone()[0]
+    increment = timenow - last_cultivating
+    inc_stone, inc_wood, inc_food, inc_gold_ore, inc_iron_ore = [round(increment * 240)] * 5
+    increment_resourses('stone', inc_stone, user_id)
+    increment_resourses('wood', inc_wood, user_id)
+    increment_resourses('food', inc_food, user_id)
+    increment_resourses('gold_ore', inc_gold_ore, user_id)
+    increment_resourses('iron_ore', inc_iron_ore, user_id)
+
+    update.message.reply_text('Вы собрали: \n'
+                              '🥩 Еды: {}\n🪨 Камня: {}\n'
+                              '🪵 Дерева: {}\n🏭 Золотой руды: {}\n'
+                              '🏭 Железной руды: {}'.format(inc_food, inc_stone, inc_wood, inc_gold_ore, inc_iron_ore),
+                              reply_markup=resources_markup)
+
+    cur.execute('UPDATE resources SET time = datetime({}) WHERE tg_id = {1}'.format(timenow))
+    con.commit()
+
+    return RESOURCES
+
+
+@log
 def buy_food(update: Update, context: CallbackContext):
     update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
     context.chat_data['material'] = 'food'
     return WAITING_FOR_SUM_TO_BUY
 
 
+@log
 def buy_wood(update: Update, context: CallbackContext):
     update.message.reply_text('За 1 единицу золота вы получите 5 единиц дерева')
     context.chat_data['material'] = 'wood'
     return WAITING_FOR_SUM_TO_BUY
 
 
+@log
 def buy_stone(update: Update, context: CallbackContext):
     update.message.reply_text('За 1 единицу золота вы получите 1 единицу камня')
     context.chat_data['material'] = 'stone'
     return WAITING_FOR_SUM_TO_BUY
 
 
+@log
 def buy_iron(update: Update, context: CallbackContext):
     update.message.reply_text('За 1 единицу золота вы получите 1 единицу железа')
     context.chat_data['material'] = 'iron'
     return WAITING_FOR_SUM_TO_BUY
 
 
+@log
 def check_buy(update: Update, context: CallbackContext):
     gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
     markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
@@ -159,6 +196,7 @@ def check_buy(update: Update, context: CallbackContext):
         return CHANGE_OR_GO_TO_MENU_MARKET
 
 
+@log
 def check_build(update: Update, context: CallbackContext):
     count_of_buildings = int(update.message.text)
     markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
@@ -199,6 +237,7 @@ def check_build(update: Update, context: CallbackContext):
         return CHANGE_OR_GO_TO_MENU_BUILDINGS
 
 
+@log
 def check_remelt(update: Update, context: CallbackContext):
     ore = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(context.chat_data['to_remelt'],
                                                                          update.message.from_user.id)).fetchone()[0]
@@ -234,6 +273,7 @@ def check_remelt(update: Update, context: CallbackContext):
         return CHANGE_OR_GO_TO_MENU_REMELTING
 
 
+@log
 def build_farms(update: Update, context: CallbackContext):
     update.message.reply_text('Стоимость одной фермы составляет: \n'
                               ' {} дерева \n'
@@ -244,6 +284,7 @@ def build_farms(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_TO_BUILD
 
 
+@log
 def build_quarries(update: Update, context: CallbackContext):
     update.message.reply_text('Стоимость одной каменоломни составляет: \n'
                               ' {} дерева \n'
@@ -254,6 +295,7 @@ def build_quarries(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_TO_BUILD
 
 
+@log
 def build_sawmills(update: Update, context: CallbackContext):
     update.message.reply_text('Стоимость одной лесопилки составляет: \n'
                               ' {} дерева \n'
@@ -264,6 +306,7 @@ def build_sawmills(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_TO_BUILD
 
 
+@log
 def build_iron_mines(update: Update, context: CallbackContext):
     update.message.reply_text('Стоимость одной железной шахты составляет: \n'
                               ' {} дерева \n'
@@ -274,6 +317,7 @@ def build_iron_mines(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_TO_BUILD
 
 
+@log
 def build_gold_mines(update: Update, context: CallbackContext):
     update.message.reply_text('Стоимость одного золотого рудника составляет: \n'
                               ' {} дерева \n'
@@ -292,13 +336,19 @@ def tranzaction_buy(type_of_material, summ, user):
     con.commit()
 
 
+def increment_resourses(type_res, amount, user):
+    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) + {2} '
+                'WHERE tg_id = {1}'.format(type_res, user, amount))
+    con.commit()
+
+
 def tranzaction_build(type_1, count_1, type_2, count_2, type_3, count_3, building, count_of_buildings, user):
-    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
-                'WHERE tg_id = {2}'.format(type_1, type_1, user, count_1))
-    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
-                'WHERE tg_id = {2}'.format(type_2, type_2, user, count_2))
-    cur.execute('UPDATE resources SET {0} = (SELECT {1} FROM resources WHERE tg_id = {2}) - {3} '
-                'WHERE tg_id = {2}'.format(type_3, type_3, user, count_3))
+    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
+                'WHERE tg_id = {1}'.format(type_1, user, count_1))
+    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
+                'WHERE tg_id = {1}'.format(type_2, user, count_2))
+    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
+                'WHERE tg_id = {1}'.format(type_3, user, count_3))
     cur.execute('UPDATE buildings SET {0} = (SELECT {0} FROM buildings WHERE tg_id = {1}) + {2} '
                 'WHERE tg_id = {1}'.format(building, user, count_of_buildings))
     con.commit()
@@ -318,6 +368,7 @@ def tranzaction_remelt(type_of_metal, count, user):
     con.commit()
 
 
+@log
 def remelt_iron(update: Update, context: CallbackContext):
     update.message.reply_text(
         'Введите количество железной руды, которое вы хотите переплавить. '
@@ -326,6 +377,7 @@ def remelt_iron(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_OF_METAL
 
 
+@log
 def remelt_gold(update: Update, context: CallbackContext):
     update.message.reply_text(
         'Введите количество золотой руды, которое вы хотите переплавить. '
@@ -337,6 +389,5 @@ def remelt_gold(update: Update, context: CallbackContext):
 @log
 def foreign_policy(update: Update, context: CallbackContext):
     foreign_policy_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
-    update.message.reply_text(
-        "Внешняя политика", reply_markup=foreign_policy_markup)
+    update.message.reply_text("Внешняя политика", reply_markup=foreign_policy_markup)
     return FOREIGN_POLICY
