@@ -99,7 +99,7 @@ def construction(update: Update, context: CallbackContext):
                                                ['Железный рудник', 'Золотой рудник'],
                                                ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
     update.message.reply_text(
-        "Каких производств желаете построить?", reply_markup=construction_markup)
+        "Какие производства желаете построить?", reply_markup=construction_markup)
     return CONSTRUCTION
 
 
