@@ -80,7 +80,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
 
 @log
 def help(update: Update, context: CallbackContext) -> int:
-    # todo: Вызввать админов или порешать, как должен работать /help
+    # todo: Вызввать админов или порешать, как должен работать /help и файл texitybot 
     update.message.reply_text(
         'Мир суров. Поэтому рабирайся сам.', reply_markup=ReplyKeyboardRemove()
     )
