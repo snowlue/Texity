@@ -34,13 +34,23 @@ def get_info_about_city(update: Update, context: CallbackContext):
     resources_3 = cur.execute('SELECT sawmills FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     resources_4 = cur.execute('SELECT iron_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     resources_5 = cur.execute('SELECT gold_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    city_name = cur.execute('SELECT city FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    x = float(cur.execute('SELECT city_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
+    y = float(cur.execute('SELECT next_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
+    city_level = '{}/{}'.format(int(x * 100), int(y * 100))
+    population_support = \
+    cur.execute('SELECT population_support FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    update.message.reply_text('Город "{}"\n'
+                              'Уровень города: {}\n'
+                              'Поддержка от населения: {}%'.format(city_name, '{} ({})'.format(int(x), city_level),
+                                                                   int(population_support * 100)))
     update.message.reply_text('Ваши предприятия\n'
                               '🧑🏻‍🌾 Фермы: {}\n'
                               '🪨 Каменоломни: {}\n'
                               '🪵 Лесопилки: {}\n'
-                              '🏭 Железные рудники: {}\n'
+                              '🏭 Шахты: {}\n'
                               '💰 Золотые рудники: {}'.format(
-                                  resources_1, resources_2, resources_3, resources_4, resources_5), reply_markup=resources_markup)
+        resources_1, resources_2, resources_3, resources_4, resources_5), reply_markup=resources_markup)
     return INFO
 
 
@@ -200,6 +210,17 @@ def check_buy(update: Update, context: CallbackContext):
         return CHANGE_OR_GO_TO_MENU_MARKET
 
 
+def upgrade_city_level(count, id):
+    level_before = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
+    cur.execute('UPDATE cities SET city_level = (SELECT city_level FROM cities WHERE tg_id = {0}) + {1} '
+                'WHERE tg_id = {0}'.format(id, count))
+    level_now = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
+    if level_now > level_before:
+        cur.execute('UPDATE cities SET next_level = {} + 1 WHERE tg_id = {}'.format(level_now, id))
+
+    con.commit()
+
+
 @log
 def check_build(update: Update, context: CallbackContext):
     count_of_buildings = int(update.message.text)
@@ -224,6 +245,7 @@ def check_build(update: Update, context: CallbackContext):
                               context.chat_data['to_build'], count_of_buildings, update.message.from_user.id)
             buildings = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'
                                     .format(context.chat_data['to_build'], update.message.from_user.id)).fetchone()[0]
+
             if context.chat_data['to_build'] == 'farms':
                 update.message.reply_text('Ваши фермы: {}'.format(buildings))
             elif context.chat_data['to_build'] == 'quarries':
@@ -234,6 +256,7 @@ def check_build(update: Update, context: CallbackContext):
                 update.message.reply_text('Ваши железные шахты: {}'.format(buildings))
             elif context.chat_data['to_build'] == 'gold_mines':
                 update.message.reply_text('Ваши золотые рудники: {}'.format(buildings))
+            upgrade_city_level(0.02 * count_of_buildings, update.message.from_user.id)
             return SUCCESSFUL_BUILD
     except ValueError:
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
