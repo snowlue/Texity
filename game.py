@@ -296,7 +296,16 @@ def check_remelt(update: Update, context: CallbackContext):
     markup_success = ReplyKeyboardMarkup([['Продолжить переплавку'], ['Вернуться в меню']], one_time_keyboard=False,
                                          resize_keyboard=True)
     try:
+        d = {'iron_ore': 'iron', 'gold_ore': 'gold'}
         count = int(update.message.text)
+        metal = cur.execute(
+                    'SELECT {} FROM resources WHERE tg_id = {}'.format(d[context.chat_data['to_remelt']], update.message.from_user.id)).fetchone()[0]
+        remelted_metal = count // 5 if context.chat_data['to_remelt'] == 'iron_ore' else count // 10
+        max_metal = 1000 * cur.execute(
+                    'SELECT {}_storages FROM buildings WHERE tg_id = {}'.format(d[context.chat_data['to_remelt']], update.message.from_user.id)).fetchone()[0]
+        if max_metal < metal + remelted_metal:
+            update.message.reply_text('К сожалению, в ваших хранилищах недостаточно места для такого количества переплавленного металла', reply_markup=markup_fail)
+            return CHANGE_OR_GO_TO_MENU_REMELTING
         if count > ore:
             update.message.reply_text('К сожалению, у вас недостаточно руды!', reply_markup=markup_fail)
             return CHANGE_OR_GO_TO_MENU_REMELTING
