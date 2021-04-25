@@ -1,5 +1,7 @@
 from secrets import API_KEY
 
+from datetime import datetime
+
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
@@ -58,9 +60,10 @@ def set_name(update: Update, context: CallbackContext) -> int:
 Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
     '''.format(name))
 
-    cur.execute('''INSERT INTO cities VALUES ({}, "{}")'''.format(user_id, name))
-    cur.execute('''INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'''.format(user_id))
-    cur.execute('''INSERT INTO resources VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, "0")'''.format(user_id))
+    cur.execute('INSERT INTO cities VALUES ({}, "{}")'.format(user_id, name))
+    cur.execute('INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1)'.format(user_id))
+    cur.execute('INSERT INTO resources '
+                'VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, "{}")'.format(user_id, datetime.now().isoformat(sep=' ')))
     list_of_players.append(user_id)
     con.commit()
     context.chat_data['city_name'] = name

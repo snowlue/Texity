@@ -112,14 +112,16 @@ def cultivating(update: Update, context: CallbackContext):
                                    'FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     timenow = cur.execute('SELECT julianday("now","localtime")').fetchone()[0]
     increment = timenow - last_cultivating
+    if increment <= 1 / 144:
+        update.message.reply_text('Ресурсы можно собирать не чаще, чем раз в 10 минут ¯\_(ツ)_/¯ \n'
+                                  'Осталось: {} минут.'.format(round(10 - increment * 1440)))
+        return RESOURCES
     inc_stone, inc_wood, inc_food, inc_gold_ore, inc_iron_ore = [round(increment * 240)] * 5
     increment_resourses('stone', inc_stone, user_id)
     increment_resourses('wood', inc_wood, user_id)
     increment_resourses('food', inc_food, user_id)
     increment_resourses('gold_ore', inc_gold_ore, user_id)
     increment_resourses('iron_ore', inc_iron_ore, user_id)
-
-    print(increment)
 
     update.message.reply_text('Вы собрали: \n'
                               '🥩 Еды: {}\n🪨 Камня: {}\n'
