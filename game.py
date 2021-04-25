@@ -29,11 +29,11 @@ PRICE_OF_BUILDINGS = {
 def get_info_about_city(update: Update, context: CallbackContext):
     resources_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
     user_id = update.message.from_user.id
-    resources_1 = cur.execute('SELECT farms FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    resources_2 = cur.execute('SELECT quarries FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    resources_3 = cur.execute('SELECT sawmills FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    resources_4 = cur.execute('SELECT iron_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    resources_5 = cur.execute('SELECT gold_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    farms = cur.execute('SELECT farms FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    quarries = cur.execute('SELECT quarries FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    sawmills = cur.execute('SELECT sawmills FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    iron_mines = cur.execute('SELECT iron_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    gold_mines = cur.execute('SELECT gold_mines FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     city_name = cur.execute('SELECT city FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     x = float(cur.execute('SELECT city_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
     y = float(cur.execute('SELECT next_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
@@ -50,7 +50,7 @@ def get_info_about_city(update: Update, context: CallbackContext):
                               '🪵 Лесопилки: {}\n'
                               '🏭 Шахты: {}\n'
                               '💰 Золотые рудники: {}'.format(
-        resources_1, resources_2, resources_3, resources_4, resources_5), reply_markup=resources_markup)
+        farms, quarries, sawmills, iron_mines, gold_mines), reply_markup=resources_markup)
     return INFO
 
 
@@ -113,6 +113,11 @@ def remelting(update: Update, context: CallbackContext):
 
 @log
 def cultivating(update: Update, context: CallbackContext):
+    farms = cur.execute('SELECT farms FROM buildings WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    quarries = cur.execute('SELECT quarries FROM buildings WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    sawmills = cur.execute('SELECT sawmills FROM buildings WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    iron_mines = cur.execute('SELECT iron_mines FROM buildings WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    gold_mines = cur.execute('SELECT gold_mines FROM buildings WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
     resources_markup = ReplyKeyboardMarkup([['Собрать ресурсы'],
                                             ['Переплавить руду'],
                                             ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
@@ -127,17 +132,35 @@ def cultivating(update: Update, context: CallbackContext):
                                   'Осталось: {} минут.'.format(round(10 - increment * 1440)))
         return RESOURCES
     inc_stone, inc_wood, inc_food, inc_gold_ore, inc_iron_ore = [round(increment * 240)] * 5
-    increment_resourses('stone', inc_stone, user_id)
-    increment_resourses('wood', inc_wood, user_id)
-    increment_resourses('food', inc_food, user_id)
-    increment_resourses('gold_ore', inc_gold_ore, user_id)
-    increment_resourses('iron_ore', inc_iron_ore, user_id)
+    delta = increment_resourses('stone', inc_stone * quarries, user_id)
+    message = 'Заполнены следующие хранилища: '
+    if delta != -1:
+        inc_stone = delta
+        message += 'хранилища камня, '
+    delta = increment_resourses('wood', inc_wood * sawmills, user_id)
+    if delta != -1:
+        inc_wood = delta
+        message += 'хранилища дерева, '
+    delta = increment_resourses('food', inc_food * farms, user_id)
+    if delta != -1:
+        inc_food = delta
+        message += 'хранилища еды, '
+    delta = increment_resourses('gold_ore', inc_gold_ore * gold_mines, user_id)
+    if delta != -1:
+        inc_gold_ore = delta
+        message += 'хранилища золотой руды, '
+    delta = increment_resourses('iron_ore', inc_iron_ore * iron_mines, user_id)
+    if delta != -1:
+        inc_iron_ore = delta
+        message += 'хранилища железной руды, '
 
     update.message.reply_text('Вы собрали: \n'
                               '🥩 Еды: {}\n🪨 Камня: {}\n'
                               '🪵 Дерева: {}\n🏭 Золотой руды: {}\n'
                               '🏭 Железной руды: {}'.format(inc_food, inc_stone, inc_wood, inc_gold_ore, inc_iron_ore),
                               reply_markup=resources_markup)
+    if message != 'Заполнены следующие хранилища: ':
+        update.message.reply_text('{}\nВам нужно построить больше хранилищ соответствующего типа.'.format(message[:-2]), reply_markup=resources_markup)
 
     cur.execute('UPDATE resources SET time = datetime({}) WHERE tg_id = {}'.format(timenow, user_id))
     con.commit()
@@ -364,9 +387,17 @@ def tranzaction_buy(type_of_material, summ, user):
 
 
 def increment_resourses(type_res, amount, user):
+    storages = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'.format('{}_storages'.format(type_res), user)).fetchone()[0]
+    resources_before = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(type_res, user)).fetchone()[0]
+    max_count = storages * 1000
+    if resources_before + amount >= max_count:
+        cur.execute('UPDATE resources SET {0} = {2} WHERE tg_id = {1}'.format(type_res, user, max_count))
+        con.commit()
+        return max_count - resources_before if resources_before < max_count else 0
     cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) + {2} '
                 'WHERE tg_id = {1}'.format(type_res, user, amount))
     con.commit()
+    return -1
 
 
 def tranzaction_build(type_1, count_1, type_2, count_2, type_3, count_3, building, count_of_buildings, user):
