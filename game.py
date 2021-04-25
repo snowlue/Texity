@@ -235,7 +235,7 @@ def check_buy(update: Update, context: CallbackContext):
 
 def upgrade_city_level(count, id):
     level_before = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
-    cur.execute('UPDATE cities SET city_level = (SELECT city_level FROM cities WHERE tg_id = {0}) + {1} '
+    cur.execute('UPDATE cities SET city_level = (SELECT city_level FROM cities WHERE tg_id = {0}) + {1} WHERE tg_id = {0} '
                 'WHERE tg_id = {0}'.format(id, count))
     level_now = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
     if level_now > level_before:
