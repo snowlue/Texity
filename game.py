@@ -455,16 +455,31 @@ def remelt_gold(update: Update, context: CallbackContext):
 @log
 def foreign_policy(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
-    foreign_policy_markup = ReplyKeyboardMarkup([
-        ['Вернуться в меню']
-    ], one_time_keyboard=False, resize_keyboard=True)
-    war_level, in_spying = cur.execute('SELECT (foreign_policy, in_spying) FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()
-    infantry, cavalry, sieges = cur.execute('SELECT * FROM army WHERE tg_id = {}'.format(user_id)).fetchone()
+    war_level, in_spying = cur.execute('SELECT foreign_policy, in_spying FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()
+    infantry, cavalry, sieges = cur.execute('SELECT * FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[1:]
     
-    update.message.reply_text('Ваш уровень военного дела: {} уровень 🪖\n'
-                              'Ваши войска:'
-                              '⠀⠀🏹 Пехота — {}'
-                              '⠀⠀🐎 Конница — {}'
+    if in_spying == -1:
+        foreign_policy_markup = ReplyKeyboardMarkup([
+            ['В атаку! ⚔️'],
+            ['Информация о противнике ℹ️'],
+            ['Вернуться в меню']
+        ], one_time_keyboard=False, resize_keyboard=True)
+    elif in_spying != 0:
+        foreign_policy_markup = ReplyKeyboardMarkup([
+            ['На разведку! 🥷🏻', 'В атаку! ⚔️'],
+            ['Информация о противнике ℹ️'],
+            ['Вернуться в меню']
+        ], one_time_keyboard=False, resize_keyboard=True)
+    else:
+        foreign_policy_markup = ReplyKeyboardMarkup([
+            ['Рассчистить путь к городу 🧭'],
+            ['Вернуться в меню']
+        ], one_time_keyboard=False, resize_keyboard=True)
+    
+    update.message.reply_text('Уровень военного дела: {} 🪖\n'
+                              'Ваши войска:\n'
+                              '⠀⠀🏹 Пехота — {}\n'
+                              '⠀⠀🐎 Конница — {}\n'
                               '⠀⠀🦬 Осадные машины — {}'.format(war_level, infantry, 
                                                                 cavalry, sieges),
                               reply_markup=foreign_policy_markup)
