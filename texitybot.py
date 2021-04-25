@@ -11,14 +11,16 @@ from telegram.ext import (
     CallbackContext,
 )
 
-ABOUT_RESOURCES, ABOUT_MARKET, ABOUT_POPULATION, ABOUT_CONSTRUCTION, ABOUT_FOREIGN_POLICY, ABOUT_CITY, HELP = range(17, 23)
+from bot import (menu, get_info_about_city, resources, market, population, construction, start, foreign_policy, MENU)
+
+ABOUT_RESOURCES, ABOUT_MARKET, ABOUT_POPULATION, ABOUT_CONSTRUCTION, ABOUT_FOREIGN_POLICY, ABOUT_CITY, HELP = range(17,
+                                                                                                                    23)
 
 
 @log
 def help(update: Update, context: CallbackContext):
-
     update.message.reply_text(
-        'Постройте свой город и реализуйте его действия, нажмите на кнопки, чтоюы узнать больше информации')
+        'Постройте свой город и реализуйте его действия, нажмите на кнопки, что,ы узнать больше информации')
     return HELP
 
 
@@ -32,28 +34,28 @@ def about_market(update: Update, context: CallbackContext):
 @log
 def about_city(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Повышайте уровень своего города для увеличения производства')
+        'Повышайте уровень своего города для увеличения производства. В городе Вы можете узнать количество производств')
     return ABOUT_CONSTRUCTION
 
 
 @log
 def about_resources(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Повышайте уровень своего города для увеличения производства')
+        'В ресурсах можно узнать количество определенного вида ресурсов и переплавить различные виды руды')
     return ABOUT_RESOURCES
 
 
 @log
 def about_population(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Повышайте уровень своего города для увеличения производства')
+        'Бла-бла-бла')
     return ABOUT_POPULATION
 
 
 @log
 def about_constrution(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Повышайте уровень своего города для увеличения производства')
+        'В строительстве Вы можете строить новые здания')
     return ABOUT_CONSTRUCTION
 
 
@@ -89,10 +91,10 @@ def run():
             HELP: [[MessageHandler(Filters.regex('^(Про рынок)$'), about_market),
                     MessageHandler(Filters.regex('^(Про город)$'), about_city),
                     MessageHandler(Filters.regex('^(Про ресурсы)$'), about_resources)],
-                  [MessageHandler(Filters.regex('^(Про население)$'), about_population),
+                   [MessageHandler(Filters.regex('^(Про население)$'), about_population),
                     MessageHandler(Filters.regex('^(Про строительство)$'), about_constrution),
                     MessageHandler(Filters.regex('^(Про внешнюю политику)$'), about_foreign_policy)],
-                  [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)]]
+                   [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)]]
         },
         fallbacks=[CommandHandler('cancel', menu)],
     )
