@@ -454,6 +454,18 @@ def remelt_gold(update: Update, context: CallbackContext):
 
 @log
 def foreign_policy(update: Update, context: CallbackContext):
-    foreign_policy_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
-    update.message.reply_text("Внешняя политика", reply_markup=foreign_policy_markup)
+    user_id = update.message.from_user.id
+    foreign_policy_markup = ReplyKeyboardMarkup([
+        ['Вернуться в меню']
+    ], one_time_keyboard=False, resize_keyboard=True)
+    war_level, in_spying = cur.execute('SELECT (foreign_policy, in_spying) FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()
+    infantry, cavalry, sieges = cur.execute('SELECT * FROM army WHERE tg_id = {}'.format(user_id)).fetchone()
+    
+    update.message.reply_text('Ваш уровень военного дела: {} уровень 🪖\n'
+                              'Ваши войска:'
+                              '⠀⠀🏹 Пехота — {}'
+                              '⠀⠀🐎 Конница — {}'
+                              '⠀⠀🦬 Осадные машины — {}'.format(war_level, infantry, 
+                                                                cavalry, sieges),
+                              reply_markup=foreign_policy_markup)
     return FOREIGN_POLICY
