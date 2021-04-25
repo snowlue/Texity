@@ -184,14 +184,14 @@ def buy_wood(update: Update, context: CallbackContext):
 
 @log
 def buy_stone(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 1 единицу камня')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц камня')
     context.chat_data['material'] = 'stone'
     return WAITING_FOR_SUM_TO_BUY
 
 
 @log
 def buy_iron(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 1 единицу железа')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц железа')
     context.chat_data['material'] = 'iron'
     return WAITING_FOR_SUM_TO_BUY
 
@@ -211,22 +211,21 @@ def check_buy(update: Update, context: CallbackContext):
         elif summ <= 0:
             raise ValueError
         else:
-            update.message.reply_text('Покупка прошла упешно!', reply_markup=markup_success)
-            tranzaction_buy(context.chat_data['material'], summ, update.message.from_user.id)
-            count = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'
-                                .format(context.chat_data['material'], update.message.from_user.id)).fetchone()[0]
-            gold = \
-                cur.execute(
-                    'SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
-            if context.chat_data['material'] == 'food':
-                update.message.reply_text('Ваша еда: {}\nВаше золото: {}'.format(count, gold))
-            elif context.chat_data['material'] == 'wood':
-                update.message.reply_text('Ваша дерево: {}\nВаше золото: {}'.format(count, gold))
-            elif context.chat_data['material'] == 'stone':
-                update.message.reply_text('Ваши камни: {}\nВаше золото: {}'.format(count, gold))
-            elif context.chat_data['material'] == 'iron':
-                update.message.reply_text('Ваши железо: {}\nВаше золото: {}'.format(count, gold))
-            return SUCCESSFUL_BUYING
+            d = {'food': 'Ваша еда', 'wood': 'Ваше дерево', 'stone': 'Ваши камни', 'iron': 'Ваше железо'}
+            before = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(context.chat_data['material'], update.message.from_user.id)).fetchone()[0]
+            add_resources = summ * 5
+            max_resources = 1000 * cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'.format('{}_storages'.format(context.chat_data['material']), update.message.from_user.id)).fetchone()[0]
+            if max_resources >= before + add_resources:
+                update.message.reply_text('Покупка прошла упешно!', reply_markup=markup_success)
+                tranzaction_buy(context.chat_data['material'], summ, update.message.from_user.id)
+                count = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'
+                                    .format(context.chat_data['material'], update.message.from_user.id)).fetchone()[0]
+                gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+                update.message.reply_text('{}: {}\nВаше золото: {}'.format(d[context.chat_data['material']], count, gold))
+                return SUCCESSFUL_BUYING
+            else:
+                update.message.reply_text('В ваших хранилищах недостаточно места для такого количества ресурсов!', reply_markup=markup_fail)
+                return CHANGE_OR_GO_TO_MENU_MARKET
     except ValueError:
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
                                   reply_markup=markup_fail)
