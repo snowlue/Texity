@@ -6,8 +6,8 @@ from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET, WAITING_FOR_TYPE_OF_BUILDING,
-                  CHANGE_OR_GO_TO_MENU_REMELTING, PRODUCTIONS, FOREIGN_POLICY, STORAGES, OTHERS,
+from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
+                  CHANGE_OR_GO_TO_MENU_REMELTING, CONSTRUCTION, FOREIGN_POLICY,
                   INFO, MARKET, MENU, POPULATION, RESOURCES, SUCCESSFUL_BUILD,
                   SUCCESSFUL_BUYING, SUCCESSFUL_REMELTING,
                   WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_OF_METAL,
@@ -15,12 +15,9 @@ from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET, W
                   WAITING_FOR_TYPE_OF_METAL, build_farms, build_gold_mines,
                   build_iron_mines, build_quarries, build_sawmills, buy_food,
                   buy_iron, buy_stone, buy_wood, check_build, check_buy,
-                  check_remelt, con, build_productions, cultivating, cur,
+                  check_remelt, con, construction, cultivating, cur,
                   foreign_policy, get_info_about_city, list_of_players, market,
-                  population, remelt_gold, remelt_iron, remelting, resources, chose_type_of_buildings,
-                  build_storages_food, build_storages_wood, build_storages_stone, build_storages_iron,
-                  build_storages_iron_ore, build_storages_gold_ore, build_storages_gold, build_storages, build_others,
-                  build_houses)
+                  population, remelt_gold, remelt_iron, remelting, resources)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -108,7 +105,7 @@ def run():
                    MessageHandler(Filters.regex('^(Ресурсы)$'), resources),
                    MessageHandler(Filters.regex('^(Рынок)$'), market),
                    MessageHandler(Filters.regex('^(Население)$'), population),
-                   MessageHandler(Filters.regex('^(Строительство)$'), chose_type_of_buildings),
+                   MessageHandler(Filters.regex('^(Строительство)$'), construction),
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
 
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
@@ -123,12 +120,12 @@ def run():
 
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
-            PRODUCTIONS: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
-                          MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
-                          MessageHandler(Filters.regex('^(Каменоломня)$'), build_quarries),
-                          MessageHandler(Filters.regex('^(Золотой рудник)$'), build_gold_mines),
-                          MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
-                          MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            CONSTRUCTION: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
+                           MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
+                           MessageHandler(Filters.regex('^(Каменоломня)$'), build_quarries),
+                           MessageHandler(Filters.regex('^(Золотой рудник)$'), build_gold_mines),
+                           MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
+                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
@@ -144,30 +141,16 @@ def run():
             CHANGE_OR_GO_TO_MENU_MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                           MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
             CHANGE_OR_GO_TO_MENU_BUILDINGS: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), chose_type_of_buildings)],
+                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction)],
             CHANGE_OR_GO_TO_MENU_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                              MessageHandler(Filters.regex('^(Попробовать еще раз)$'), remelting)],
 
             SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                 MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
             SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), chose_type_of_buildings)],
+                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)],
             SUCCESSFUL_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)],
-            WAITING_FOR_TYPE_OF_BUILDING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                           MessageHandler(Filters.regex('^(Производства)$'), build_productions),
-                                           MessageHandler(Filters.regex('^(Хранилища)$'), build_storages),
-                                           MessageHandler(Filters.regex('^(Прочие строения)$'), build_others)],
-            STORAGES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                    MessageHandler(Filters.regex('^(Еда)$'), build_storages_food),
-                    MessageHandler(Filters.regex('^(Дерево)$'), build_storages_wood),
-                    MessageHandler(Filters.regex('^(Железо)$'), build_storages_iron),
-                    MessageHandler(Filters.regex('^(Золото)$'), build_storages_gold),
-                    MessageHandler(Filters.regex('^(Камни)$'), build_storages_stone),
-                    MessageHandler(Filters.regex('^(Железная руда)$'), build_storages_iron_ore),
-                    MessageHandler(Filters.regex('^(Золотая руда)$'), build_storages_gold_ore)],
-            OTHERS: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                     MessageHandler(Filters.regex('^(Жилые здания)$'), build_houses)]
+                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)]
 
 
         },

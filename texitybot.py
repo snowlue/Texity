@@ -18,42 +18,42 @@ ABOUT_RESOURCES, ABOUT_MARKET, ABOUT_POPULATION, ABOUT_CONSTRUCTION, ABOUT_FOREI
 def help(update: Update, context: CallbackContext):
 
     update.message.reply_text(
-        'Постройте свой город и реализуйте его действия, нажмите на кнопки, чтобы узнать больше информации')
+        'Постройте свой город и реализуйте его действия, нажмите на кнопки, чтоюы узнать больше информации')
     return HELP
 
 
 @log
 def about_market(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'На рынке Вы можете покупать ресурсы за золото.')
+        'На рынке Вы можете покупать ресурсы за золото')
     return ABOUT_MARKET
 
 
 @log
 def about_city(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Повышайте уровень своего города для увеличения производства. В городе Вы можте узнать количество производств')
+        'Повышайте уровень своего города для увеличения производства')
     return ABOUT_CONSTRUCTION
 
 
 @log
 def about_resources(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'В ресурсах можно узнать количество отределенного вида ресурсов и переплавить различные виды руды')
+        'Повышайте уровень своего города для увеличения производства')
     return ABOUT_RESOURCES
 
 
 @log
 def about_population(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Бла-бла-бла')
+        'Повышайте уровень своего города для увеличения производства')
     return ABOUT_POPULATION
 
 
 @log
 def about_constrution(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'В строительстве Вы можете строить здания')
+        'Повышайте уровень своего города для увеличения производства')
     return ABOUT_CONSTRUCTION
 
 
