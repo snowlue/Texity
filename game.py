@@ -4,6 +4,9 @@ import sqlite3
 from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
+from compfuncs import (get_opposite_city, increment_resources,
+                       transaction_build, transaction_buy, transaction_hiring,
+                       transaction_remelt, upgrade_city_level)
 from logger import log
 
 img_market = open("market.jpg", 'rb')
@@ -161,7 +164,7 @@ def check_hiring(update: Update, context: CallbackContext):
                 update.message.reply_text('У вас недостаточно ресурсов!', reply_markup=markup_fail)
                 return CHANGE_OR_GO_TO_MENU_ARMY
         update.message.reply_text('Вы успешно наняли войска', reply_markup=markup_success)
-        tranzaction_hiring(context.chat_data['to_hire'], count, ARMY[context.chat_data['to_hire']][0][0], needed_iron,
+        transaction_hiring(context.chat_data['to_hire'], count, ARMY[context.chat_data['to_hire']][0][0], needed_iron,
                            ARMY[context.chat_data['to_hire']][1][0], needed_1,
                            ARMY[context.chat_data['to_hire']][2][0], needed_2, update.message.from_user.id)
         return SUCCESSFUL_HIRING
@@ -169,16 +172,6 @@ def check_hiring(update: Update, context: CallbackContext):
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
                                   reply_markup=markup_fail)
         return CHANGE_OR_GO_TO_MENU_ARMY
-
-
-def tranzaction_hiring(type, count, res_1, count_1, res_2, count_2, res_3, count_3, user):
-    cur.execute('UPDATE army SET {0} = (SELECT {0} FROM army WHERE tg_id = {2}) + {1} WHERE tg_id = {2}'.format(type, count, user))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {2}) - {1} WHERE tg_id = {2}'.format(res_1, count_1, user))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {2}) - {1} WHERE tg_id = {2}'.format(res_2, count_2, user))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {2}) - {1} WHERE tg_id = {2}'.format(res_3, count_3, user))
-    if type != 'sieges':
-        cur.execute('UPDATE resources SET population = (SELECT population FROM resources WHERE tg_id = {1}) - {0} WHERE tg_id = {1}'.format(count, user))
-    con.commit()
 
 
 @log
@@ -305,7 +298,7 @@ def check_buy(update: Update, context: CallbackContext):
             max_resources = 1000 * cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'.format('{}_storages'.format(context.chat_data['material']), update.message.from_user.id)).fetchone()[0]
             if max_resources >= before + add_resources:
                 update.message.reply_text('Покупка прошла упешно!', reply_markup=markup_success)
-                tranzaction_buy(context.chat_data['material'], summ, update.message.from_user.id)
+                transaction_buy(context.chat_data['material'], summ, update.message.from_user.id)
                 count = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'
                                     .format(context.chat_data['material'], update.message.from_user.id)).fetchone()[0]
                 gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
@@ -318,17 +311,6 @@ def check_buy(update: Update, context: CallbackContext):
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
                                   reply_markup=markup_fail)
         return CHANGE_OR_GO_TO_MENU_MARKET
-
-
-def upgrade_city_level(count, id):
-    level_before = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
-    cur.execute('UPDATE cities SET city_level = (SELECT city_level FROM cities WHERE tg_id = {0}) + {1} WHERE tg_id = {0} '
-                'WHERE tg_id = {0}'.format(id, count))
-    level_now = int(cur.execute('SELECT city_level FROM cities WHERE tg_id = {0}'.format(id, count)).fetchone()[0])
-    if level_now > level_before:
-        cur.execute('UPDATE cities SET next_level = {} + 1 WHERE tg_id = {}'.format(level_now, id))
-
-    con.commit()
 
 
 @log
@@ -351,7 +333,7 @@ def check_build(update: Update, context: CallbackContext):
             spisok.append([i[0], i[1] * count_of_buildings])
         else:
             update.message.reply_text('Вы успешно построили предприятия!', reply_markup=markup_success)
-            tranzaction_build(spisok[0][0], spisok[0][1], spisok[1][0], spisok[1][1], spisok[2][0], spisok[2][1],
+            transaction_build(spisok[0][0], spisok[0][1], spisok[1][0], spisok[1][1], spisok[2][0], spisok[2][1],
                               context.chat_data['to_build'], count_of_buildings, update.message.from_user.id)
             buildings = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'
                                     .format(context.chat_data['to_build'], update.message.from_user.id)).fetchone()[0]
@@ -400,7 +382,7 @@ def check_remelt(update: Update, context: CallbackContext):
             raise ValueError
         else:
             update.message.reply_text('Переплавка прошла упешно!', reply_markup=markup_success)
-            tranzaction_remelt(context.chat_data['to_remelt'], count, update.message.from_user.id)
+            transaction_remelt(context.chat_data['to_remelt'], count, update.message.from_user.id)
             ore = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(context.chat_data['to_remelt'],
                                                                                  update.message.from_user.id)).fetchone()[
                 0]
@@ -474,59 +456,11 @@ def build_gold_mines(update: Update, context: CallbackContext):
     return WAITING_FOR_COUNT_TO_BUILD
 
 
-def tranzaction_buy(type_of_material, summ, user):
-    cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {0}) - {1} '
-                'WHERE tg_id = {0}'.format(user, summ))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) + 5 * {2} '
-                'WHERE tg_id = {1}'.format(type_of_material, user, summ))
-    con.commit()
-
-
-def increment_resources(type_res, amount, user):
-    storages = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'.format('{}_storages'.format(type_res), user)).fetchone()[0]
-    resources_before = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(type_res, user)).fetchone()[0]
-    max_count = storages * 1000
-    if resources_before + amount >= max_count:
-        cur.execute('UPDATE resources SET {0} = {2} WHERE tg_id = {1}'.format(type_res, user, max_count))
-        con.commit()
-        return max_count - resources_before if resources_before < max_count else 0
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) + {2} '
-                'WHERE tg_id = {1}'.format(type_res, user, amount))
-    con.commit()
-    return -1
-
-
-def tranzaction_build(type_1, count_1, type_2, count_2, type_3, count_3, building, count_of_buildings, user):
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
-                'WHERE tg_id = {1}'.format(type_1, user, count_1))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
-                'WHERE tg_id = {1}'.format(type_2, user, count_2))
-    cur.execute('UPDATE resources SET {0} = (SELECT {0} FROM resources WHERE tg_id = {1}) - {2} '
-                'WHERE tg_id = {1}'.format(type_3, user, count_3))
-    cur.execute('UPDATE buildings SET {0} = (SELECT {0} FROM buildings WHERE tg_id = {1}) + {2} '
-                'WHERE tg_id = {1}'.format(building, user, count_of_buildings))
-    con.commit()
-
-
-def tranzaction_remelt(type_of_metal, count, user):
-    if type_of_metal == 'iron_ore':
-        cur.execute('UPDATE resources SET iron = (SELECT iron FROM resources WHERE tg_id = {0}) + ({1} / 5)'
-                    'WHERE tg_id = {0}'.format(user, count))
-        cur.execute('UPDATE resources SET iron_ore = (SELECT iron_ore FROM resources WHERE tg_id = {0}) - ({1})'
-                    'WHERE tg_id = {0}'.format(user, count))
-    elif type_of_metal == 'gold_ore':
-        cur.execute('UPDATE resources SET gold = (SELECT gold FROM resources WHERE tg_id = {0}) + ({1} / 10)'
-                    'WHERE tg_id = {0}'.format(user, count))
-        cur.execute('UPDATE resources SET gold_ore = (SELECT gold_ore FROM resources WHERE tg_id = {0}) - ({1})'
-                    'WHERE tg_id = {0}'.format(user, count))
-    con.commit()
-
-
 @log
 def remelt_iron(update: Update, context: CallbackContext):
     update.message.reply_text(
         'Введите количество железной руды, которое вы хотите переплавить. '
-        'За 5 единиц железной руды вы получите 1 единицу железа')
+        'За 5 единиц железной руды вы получите 1 единицу железа.')
     context.chat_data['to_remelt'] = 'iron_ore'
     return WAITING_FOR_COUNT_OF_METAL
 
@@ -535,7 +469,7 @@ def remelt_iron(update: Update, context: CallbackContext):
 def remelt_gold(update: Update, context: CallbackContext):
     update.message.reply_text(
         'Введите количество золотой руды, которое вы хотите переплавить. '
-        'За 10 единиц золотой руды вы получите 1 единицу золота')
+        'За 10 единиц золотой руды вы получите 1 единицу золота.')
     context.chat_data['to_remelt'] = 'gold_ore'
     return WAITING_FOR_COUNT_OF_METAL
 
@@ -573,74 +507,6 @@ def foreign_policy(update: Update, context: CallbackContext):
                               reply_markup=foreign_policy_markup)
     return FOREIGN_POLICY
 
-
-def calculate_random_shift(number, shift):
-    try:
-        return round(number + number * random.choice([i / 1000 for i in range(-int(shift*10), int(shift*10), 1)]))
-    except IndexError:
-        return number
-
-
-def get_opposite_city(tg_id: int, context: CallbackContext, times):
-    war_level = cur.execute('SELECT foreign_policy FROM cities WHERE tg_id = {}'.format(tg_id)).fetchone()[0]
-    if 'opposite.name' not in context.chat_data:
-        opposite_city = list(cur.execute('SELECT * FROM npc_cities WHERE id = {}'.format(war_level)).fetchone())
-        
-        context.chat_data['opposite.name'] = opposite_city[1]
-        one_resourse = opposite_city[2] // 5
-        context.chat_data['opposite.stone'] = round(one_resourse +
-                                                    one_resourse *
-                                                    random.choice([i / 100 for i in range(-12, 26, 1)]))
-        opposite_city[2] -= context.chat_data['opposite.stone']
-        context.chat_data['opposite.wood'] = round(one_resourse +
-                                                   one_resourse *
-                                                   random.choice([i / 100 for i in range(-12, 26, 1)]))
-        opposite_city[2] -= context.chat_data['opposite.wood']
-        context.chat_data['opposite.iron_ore'] = round(one_resourse +
-                                                       one_resourse *
-                                                       random.choice([i / 100 for i in range(-25, 10, 1)]))
-        opposite_city[2] -= context.chat_data['opposite.iron_ore']
-        context.chat_data['opposite.gold_ore'] = round(one_resourse +
-                                                       one_resourse *
-                                                       random.choice([i / 100 for i in range(-25, 10, 1)]))
-        opposite_city[2] -= context.chat_data['opposite.gold_ore']
-        context.chat_data['opposite.food'] = opposite_city[2]
-        context.chat_data['opposite.gold'] = opposite_city[3]
-        context.chat_data['opposite.infantry'] = opposite_city[4]
-        context.chat_data['opposite.cavalry'] = opposite_city[5]
-        context.chat_data['opposite.requiered_sieges'] = opposite_city[6]
-        context.chat_data['opposite.farms'] = opposite_city[8]
-        context.chat_data['opposite.quarries'] = opposite_city[9]
-        context.chat_data['opposite.sawmills'] = opposite_city[10]
-        context.chat_data['opposite.population'] = opposite_city[11]
-
-    if times == 0:
-        P_r, P_w = 20, 33
-    elif times == 1:
-        P_r, P_w = 15, 20
-    elif times == 2:
-        P_r, P_w = 10, 10
-    elif times == 3:
-        P_r, P_w = 0, 0
-        
-    context.chat_data['opposite.fake_stone'] = calculate_random_shift(context.chat_data['opposite.stone'],
-                                                                      P_r - 0.5 * war_level)
-    context.chat_data['opposite.fake_wood'] = calculate_random_shift(context.chat_data['opposite.wood'],
-                                                                     P_r - 0.5 * war_level)
-    context.chat_data['opposite.fake_iron_ore'] = calculate_random_shift(context.chat_data['opposite.iron_ore'],
-                                                                         P_r - 0.5 * war_level)
-    context.chat_data['opposite.fake_gold_ore'] = calculate_random_shift(context.chat_data['opposite.gold_ore'],
-                                                                         P_r - 0.5 * war_level)
-    context.chat_data['opposite.fake_food'] = calculate_random_shift(context.chat_data['opposite.food'],
-                                                                     P_r - 0.5 * war_level)
-    context.chat_data['opposite.fake_infantry'] = calculate_random_shift(context.chat_data['opposite.infantry'],
-                                                                         P_w - 0.5 * war_level)
-    context.chat_data['opposite.fake_cavalry'] = calculate_random_shift(context.chat_data['opposite.cavalry'],
-                                                                        P_w - 0.5 * war_level)
-    context.chat_data['opposite.fake_requiered_sieges'] = calculate_random_shift(context.chat_data['opposite.requiered_sieges'],
-                                                                                 P_w - 0.5 * war_level)
-    context.chat_data['opposite.fake_population'] = calculate_random_shift(context.chat_data['opposite.population'],
-                                                                           P_w - 0.5 * war_level)
 
 @log
 def path_to_city(update: Update, context: CallbackContext):
