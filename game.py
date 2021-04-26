@@ -636,7 +636,7 @@ def scouting(update: Update, context: CallbackContext):
     elif in_spying == 3:
         max_chance = 0.9
     
-    if chance <= 0.63:
+    if chance <= max_chance:
         cur.execute('UPDATE cities SET in_spying = -1 WHERE tg_id = {}'.format(user_id))
         war_markup = ReplyKeyboardMarkup([
             ['В атаку! ⚔️'],
