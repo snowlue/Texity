@@ -15,9 +15,9 @@ from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
                   build_iron_mines, build_quarries, build_sawmills, buy_food,
                   buy_iron, buy_stone, buy_wood, check_build, check_buy,
                   check_remelt, con, construction, cultivating, cur,
-                  foreign_policy, get_info_about_city, list_of_players, market,
-                  path_to_city, population, remelt_gold, remelt_iron,
-                  remelting, resources, scouting)
+                  foreign_policy, get_info_about_city, get_info_about_opposite,
+                  list_of_players, market, path_to_city, population,
+                  remelt_gold, remelt_iron, remelting, resources, scouting)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -130,7 +130,7 @@ def run():
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Расчистить путь к городу 🧭)$'), path_to_city),
                              MessageHandler(Filters.regex('^(На разведку! 🥷🏻)$'), scouting),
                              MessageHandler(Filters.regex('^(В атаку! ⚔️)$'), lambda: ...),
-                             MessageHandler(Filters.regex('^(Информация о противнике ℹ️)$'), lambda: ...),
+                             MessageHandler(Filters.regex('^(Информация о противнике ℹ️)$'), get_info_about_opposite),
                              MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
