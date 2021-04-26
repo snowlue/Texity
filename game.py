@@ -221,24 +221,24 @@ def cultivating(update: Update, context: CallbackContext):
                                   'Осталось: {} минут.'.format(round(10 - increment * 1440)))
         return RESOURCES
     inc_stone, inc_wood, inc_food, inc_gold_ore, inc_iron_ore = [round(increment * 240)] * 5
-    delta = increment_resourses('stone', inc_stone * quarries, user_id)
+    delta = increment_resources('stone', inc_stone * quarries, user_id)
     message = 'Заполнены следующие хранилища: '
     if delta != -1:
         inc_stone = delta
         message += 'хранилища камня, '
-    delta = increment_resourses('wood', inc_wood * sawmills, user_id)
+    delta = increment_resources('wood', inc_wood * sawmills, user_id)
     if delta != -1:
         inc_wood = delta
         message += 'хранилища дерева, '
-    delta = increment_resourses('food', inc_food * farms, user_id)
+    delta = increment_resources('food', inc_food * farms, user_id)
     if delta != -1:
         inc_food = delta
         message += 'хранилища еды, '
-    delta = increment_resourses('gold_ore', inc_gold_ore * gold_mines, user_id)
+    delta = increment_resources('gold_ore', inc_gold_ore * gold_mines, user_id)
     if delta != -1:
         inc_gold_ore = delta
         message += 'хранилища золотой руды, '
-    delta = increment_resourses('iron_ore', inc_iron_ore * iron_mines, user_id)
+    delta = increment_resources('iron_ore', inc_iron_ore * iron_mines, user_id)
     if delta != -1:
         inc_iron_ore = delta
         message += 'хранилища железной руды, '
@@ -483,7 +483,7 @@ def tranzaction_buy(type_of_material, summ, user):
     con.commit()
 
 
-def increment_resourses(type_res, amount, user):
+def increment_resources(type_res, amount, user):
     storages = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'.format('{}_storages'.format(type_res), user)).fetchone()[0]
     resources_before = cur.execute('SELECT {} FROM resources WHERE tg_id = {}'.format(type_res, user)).fetchone()[0]
     max_count = storages * 1000
@@ -782,26 +782,67 @@ def scouting(update: Update, context: CallbackContext):
     return FOREIGN_POLICY
 
 def attack(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
     markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
-    sieges = cur.execute('SELECT sieges FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
-    infantry = cur.execute('SELECT infantry FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
-    cavalry = cur.execute('SELECT cavalry FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
-    # проверь сравнение переменных и сделай .format() для скобочек
+    sieges = cur.execute('SELECT sieges FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    infantry = cur.execute('SELECT infantry FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    cavalry = cur.execute('SELECT cavalry FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    stone = cur.execute('SELECT stone FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    wood = cur.execute('SELECT wood FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    iron_ore = cur.execute('SELECT iron_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    gold_ore = cur.execute('SELECT gold_ore FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    gold = cur.execute('SELECT gold FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    populate = cur.execute('SELECT population FROM resources WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    farms = cur.execute('SELECT farms FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    quarries = cur.execute('SELECT quarries FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    sawmills = cur.execute('SELECT sawmills FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    war_level = cur.execute('SELECT foreign_policy FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    
+    if 'opposite.name' not in context.chat_data:
+        get_opposite_city(user_id, context, 3)
+        
     if context.chat_data['opposite.requiered_sieges'] > sieges:
         update.message.reply_text('Наших осадных машин не хватило, чтобы пробить стену города. Наша армия уничтожена.', reply_markup=markup)
-        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
-        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
-        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE cities SET in_spying = 0 WHERE tg_id = {0}'.format(user_id))
     elif context.chat_data['opposite.infantry'] + 10 * context.chat_data['opposite.cavalry'] <= infantry + 10 * cavalry:
-        update.message.reply_text('Мы победили. Город присоединился к нашей растущей агломерации.')
-        update.message.reply_text('Мы получили: {} еды, {} камней, {} дерева, {} железа, {} золота')
-        update.message.reply_text('Число наших производтв увеличилось: {} ферм, {} каменоломен, {} лесопилки.')
-        update.message.reply_text('Население нашей агломерации увеличилось на {} человек.', reply_markup=markup)
+        update.message.reply_text('Мы победили! {} присоединился к нашей растущей агломерации!\n'
+                                  'Мы получили: {} еды, {} камня, {} дерева, {} железной руды, {} золотой руды, {} золота.\n'
+                                  'Число наших производств увеличилось: {} ферм, {} каменоломен, {} лесопилки.\n'
+                                  'Население нашей агломерации увеличилось на {} человек.'.format(
+                                      context.chat_data['opposite.name'], context.chat_data['opposite.food'], context.chat_data['opposite.stone'], 
+                                      context.chat_data['opposite.wood'], context.chat_data['opposite.iron_ore'], context.chat_data['opposite.gold_ore'], 
+                                      context.chat_data['opposite.gold'], context.chat_data['opposite.farms'], context.chat_data['opposite.quarries'], 
+                                      context.chat_data['opposite.sawmills'], context.chat_data['opposite.population']), reply_markup=markup)
+
+        cur.execute('UPDATE army SET infantry = {} WHERE tg_id = {}'.format(round(infantry * 0.5), user_id))
+        cur.execute('UPDATE army SET cavalry = {} WHERE tg_id = {}'.format(round(cavalry * 0.5), user_id))
+        cur.execute('UPDATE army SET sieges = {} WHERE tg_id = {}'.format(round(sieges * 0.5), user_id))
+        
+        cur.execute('UPDATE resources SET stone = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.stone'], stone))
+        cur.execute('UPDATE resources SET wood = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.wood'], wood))
+        cur.execute('UPDATE resources SET iron_ore = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.iron_ore'], iron_ore))
+        cur.execute('UPDATE resources SET gold_ore = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.gold_ore'], gold_ore))
+        cur.execute('UPDATE resources SET gold = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.gold'], gold))
+        cur.execute('UPDATE resources SET population = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.population'], populate))
+        
+        cur.execute('UPDATE buildings SET farms = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.farms'], farms))
+        cur.execute('UPDATE buildings SET quarries = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.quarries'], quarries))
+        cur.execute('UPDATE buildings SET sawmills = {2} + {1} WHERE tg_id = {0}'.format(user_id, context.chat_data['opposite.sawmills'], sawmills))
+        
+        cur.execute('UPDATE cities SET foreign_policy = {1} + 1 WHERE tg_id = {0}'.format(user_id, war_level))
+        cur.execute('UPDATE cities SET in_spying = 0 WHERE tg_id = {0}'.format(user_id))
+        
     else:
         update.message.reply_text('К сожалению, защитники города оказались сильнее. Наша армия уничтожена.', reply_markup=markup)
-        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
-        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
-        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(user_id))
+        cur.execute('UPDATE cities SET in_spying = 0 WHERE tg_id = {0}'.format(user_id))
+    
+    con.commit()
     return FINAL
 
 @log
