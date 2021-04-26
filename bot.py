@@ -64,6 +64,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
 
     cur.execute('INSERT INTO cities VALUES ({}, "{}", 0.5, 1, 2, 1, 0)'.format(user_id, name))
     cur.execute('INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)'.format(user_id))
+    cur.execute('INSERT INTO army VALUES ({}, 15, 5, 3)'.format(user_id))
     cur.execute('INSERT INTO resources '
                 'VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 100, "{}")'.format(user_id, datetime.now().isoformat(sep=' ')))
     list_of_players.append(user_id)
