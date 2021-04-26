@@ -504,7 +504,6 @@ def path_to_city(update: Update, context: CallbackContext):
         legend = 'Каналья! Нас засекли... Придётся сразу идти в бой, у нас нет выхода.\n\n'
         war_markup = ReplyKeyboardMarkup([
             ['В атаку! ⚔️'],
-            ['Информация о противнике ℹ️'],
             ['Вернуться в меню']
         ], one_time_keyboard=False, resize_keyboard=True)
     else:
@@ -512,7 +511,6 @@ def path_to_city(update: Update, context: CallbackContext):
         legend = 'Отлично! Мы смогли незаметно для противника расчистить место для разведки!\n\n'
         war_markup = ReplyKeyboardMarkup([
             ['На разведку! 🥷🏻', 'В атаку! ⚔️'],
-            ['Информация о противнике ℹ️'],
             ['Вернуться в меню']
         ], one_time_keyboard=False, resize_keyboard=True)
     con.commit()
@@ -597,5 +595,7 @@ def path_to_city(update: Update, context: CallbackContext):
             context.chat_data['opposite.fake_food'], context.chat_data['opposite.fake_iron_ode'],
             context.chat_data['opposite.fake_gold_ore'], context.chat_data['opposite.farms'],
             context.chat_data['opposite.quarries'], context.chat_data['opposite.sawmills']
-        )
+        ), reply_markup=war_markup
     )
+    
+    return FOREIGN_POLICY
