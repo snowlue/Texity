@@ -259,28 +259,28 @@ def cultivating(update: Update, context: CallbackContext):
 
 @log
 def buy_food(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц еды. Какое количество золота Вы собираетесь потратить?')
     context.chat_data['material'] = 'food'
     return WAITING_FOR_SUM_TO_BUY
 
 
 @log
 def buy_wood(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц дерева')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц дерева. Какое количество золота Вы собираетесь потратить?')
     context.chat_data['material'] = 'wood'
     return WAITING_FOR_SUM_TO_BUY
 
 
 @log
 def buy_stone(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц камня')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц камня. Какое количество золота Вы собираетесь потратить?')
     context.chat_data['material'] = 'stone'
     return WAITING_FOR_SUM_TO_BUY
 
 
 @log
 def buy_iron(update: Update, context: CallbackContext):
-    update.message.reply_text('За 1 единицу золота вы получите 5 единиц железа')
+    update.message.reply_text('За 1 единицу золота вы получите 5 единиц железа. Какое количество золота Вы собираетесь потратить?')
     context.chat_data['material'] = 'iron'
     return WAITING_FOR_SUM_TO_BUY
 
