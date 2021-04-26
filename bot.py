@@ -1,6 +1,5 @@
-from secrets import API_KEY
-
 from datetime import datetime
+from secrets import API_KEY
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
@@ -17,7 +16,8 @@ from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
                   buy_iron, buy_stone, buy_wood, check_build, check_buy,
                   check_remelt, con, construction, cultivating, cur,
                   foreign_policy, get_info_about_city, list_of_players, market,
-                  population, remelt_gold, remelt_iron, remelting, resources)
+                  path_to_city, population, remelt_gold, remelt_iron,
+                  remelting, resources)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -127,7 +127,11 @@ def run():
                            MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
                            MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
-            FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Расчистить путь к городу 🧭)$'), path_to_city),
+                             MessageHandler(Filters.regex('^(На разведку! 🥷🏻)$'), lambda: ...),
+                             MessageHandler(Filters.regex('^(В атаку! ⚔️)$'), lambda: ...),
+                             MessageHandler(Filters.regex('^(Информация о противнике ℹ️)$'), lambda: ...),
+                             MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
             WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],

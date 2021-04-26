@@ -1,3 +1,4 @@
+import random
 import sqlite3
 
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -472,7 +473,7 @@ def foreign_policy(update: Update, context: CallbackContext):
         ], one_time_keyboard=False, resize_keyboard=True)
     else:
         foreign_policy_markup = ReplyKeyboardMarkup([
-            ['Рассчистить путь к городу 🧭'],
+            ['Расчистить путь к городу 🧭'],
             ['Вернуться в меню']
         ], one_time_keyboard=False, resize_keyboard=True)
     
@@ -484,3 +485,117 @@ def foreign_policy(update: Update, context: CallbackContext):
                                                                 cavalry, sieges),
                               reply_markup=foreign_policy_markup)
     return FOREIGN_POLICY
+
+
+def calculate_random_shift(number, shift):
+    return round(number + number * random.choice([i / 1000 for i in range(-shift*10, shift*10, 1)]))
+
+
+@log
+def path_to_city(update: Update, context: CallbackContext):
+    user_id = update.message.from_user.id
+    
+    war_level = cur.execute('SELECT foreign_policy FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    opposite_city = cur.execute('SELECT * FROM npc_cities WHERE id = {}'.format(war_level)).fetchone()
+    chance = random.random() + war_level * 0.05
+    
+    if chance <= 0.1:
+        cur.execute('UPDATE cities SET in_spying = -1 WHERE tg_id = {}'.format(user_id))
+        legend = 'Каналья! Нас засекли... Придётся сразу идти в бой, у нас нет выхода.\n\n'
+        war_markup = ReplyKeyboardMarkup([
+            ['В атаку! ⚔️'],
+            ['Информация о противнике ℹ️'],
+            ['Вернуться в меню']
+        ], one_time_keyboard=False, resize_keyboard=True)
+    else:
+        cur.execute('UPDATE cities SET in_spying = 1 WHERE tg_id = {}'.format(user_id))
+        legend = 'Отлично! Мы смогли незаметно для противника расчистить место для разведки!\n\n'
+        war_markup = ReplyKeyboardMarkup([
+            ['На разведку! 🥷🏻', 'В атаку! ⚔️'],
+            ['Информация о противнике ℹ️'],
+            ['Вернуться в меню']
+        ], one_time_keyboard=False, resize_keyboard=True)
+    con.commit()
+    
+    phrase = random.choice(['Ходят слухи, что это', 'Поговаривают, что это', 
+                            'Говорят, что это', 'По всему миру это место известно как',
+                            'Везде ходят слухи, что это', 'Всем кажется, что это',
+                            'Везде известно, что это', 'По всему миру ходят слухи, что это',
+                            'Все знают, что это', 'Всем это место известно как']) + opposite_city[7] + '...\n\n'
+
+    context.chat_data['opposite.name'] = opposite_city[1]
+    one_resourse = opposite_city[2] // 5
+    context.chat_data['opposite.stone'] = round(one_resourse + 
+                                                one_resourse * 
+                                                random.choice([i / 100 for i in range(-12, 26, 1)]))
+    opposite_city[2] -= context.chat_data['opposite.stone']
+    context.chat_data['opposite.wood'] = round(one_resourse + 
+                                               one_resourse * 
+                                               random.choice([i / 100 for i in range(-12, 26, 1)]))
+    opposite_city[2] -= context.chat_data['opposite.wood']
+    context.chat_data['opposite.iron_ode'] = round(one_resourse + 
+                                               one_resourse * 
+                                               random.choice([i / 100 for i in range(-25, 16, 1)]))
+    opposite_city[2] -= context.chat_data['opposite.iron_ode']
+    context.chat_data['opposite.gold_ore'] = round(one_resourse + 
+                                               one_resourse * 
+                                               random.choice([i / 100 for i in range(-25, 16, 1)]))
+    opposite_city[2] -= context.chat_data['opposite.gold_ore']
+    context.chat_data['opposite.food'] = opposite_city[2]
+    context.chat_data['opposite.gold'] = opposite_city[3]
+    context.chat_data['opposite.infantry'] = opposite_city[4]
+    context.chat_data['opposite.cavalry'] = opposite_city[5]
+    context.chat_data['opposite.requiered_sieges'] = opposite_city[6]
+    context.chat_data['opposite.farms'] = opposite_city[8]
+    context.chat_data['opposite.quarries'] = opposite_city[9]
+    context.chat_data['opposite.sawmills'] = opposite_city[10]
+    context.chat_data['opposite.population'] = opposite_city[11]
+    
+    context.chat_data['opposite.fake_stone'] = calculate_random_shift(context.chat_data['opposite.stone'],
+                                                                      33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_wood'] = calculate_random_shift(context.chat_data['opposite.wood'],
+                                                                     33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_iron_ode'] = calculate_random_shift(context.chat_data['opposite.iron_ode'],
+                                                                         33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_gold_ore'] = calculate_random_shift(context.chat_data['opposite.gold_ode'],
+                                                                         33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_food'] = calculate_random_shift(context.chat_data['opposite.food'],
+                                                                     33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_infantry'] = calculate_random_shift(context.chat_data['opposite.infantry'],
+                                                                         33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_cavalry'] = calculate_random_shift(context.chat_data['opposite.cavalry'],
+                                                                        33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_requiered_sieges'] = calculate_random_shift(context.chat_data['opposite.requiered_sieges'],
+                                                                                 33 - 0.5 * war_level)
+    context.chat_data['opposite.fake_population'] = calculate_random_shift(context.chat_data['opposite.population'],
+                                                                           33 - 0.5 * war_level)
+    
+    update.message.reply_text(
+        legend + phrase + 'Вот что мы смогли разведать во время расчистки места.\n'
+        '🏰 Название: {}\n'
+        '💰 Из последних публичных отчётов о бюджете нам известно, что в городе {} золота.\n\n'
+        'Мы посчитали стражу вокруг, но могли ошибиться. В городе:\n'
+        '⠀⠀- {} жителей 👥\n'
+        '⠀⠀- {} пехоты 🏹\n'
+        '⠀⠀- {} кавалерии 🐎\n'
+        '⠀⠀Скорее всего нам понадобится {} осадных машин, чтобы пробить стены 🦬\n\n'
+        'Очень неточные данные по ресурсам в хранилищах:\n'
+        '⠀⠀- {} единиц камня 🪨\n'
+        '⠀⠀- {} единиц дерева 🪵\n'
+        '⠀⠀- {} единиц еды 🥩\n'
+        '⠀⠀- {} единиц железной руды 🏭\n'
+        '⠀⠀- {} единиц золотой руды 🏭\n\n'
+        'За стенами мы разглядели производства города. В городе точно стоит:\n'
+        '⠀⠀- {} ферм 🧑🏻‍🌾\n'
+        '⠀⠀- {} каменоломен 🪨\n'
+        '⠀⠀- {} лесопилок 🪵\n\n'
+        'Мы можем поити в разведку, чтобы узнать более точную информацию.'.format(
+            context.chat_data['opposite.name'], context.chat_data['opposite.gold'],
+            context.chat_data['opposite.fake_population'], context.chat_data['opposite.fake_infantry'],
+            context.chat_data['opposite.fake_cavalry'], context.chat_data['opposite.fake_requiered_sieges'],
+            context.chat_data['opposite.fake_stone'], context.chat_data['opposite.fake_wood'],
+            context.chat_data['opposite.fake_food'], context.chat_data['opposite.fake_iron_ode'],
+            context.chat_data['opposite.fake_gold_ore'], context.chat_data['opposite.farms'],
+            context.chat_data['opposite.quarries'], context.chat_data['opposite.sawmills']
+        )
+    )
