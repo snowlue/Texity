@@ -19,7 +19,8 @@ from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
                   list_of_players, market, path_to_city, population,
                   remelt_gold, remelt_iron, remelting, resources, scouting,
                   HIRE_ARMY, HIRE_CAVALRY, HIRE_INFANTRY, BUILD_SIEGES, SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY,
-                  hire_army, hire_cavalry, hire_infantry, build_sieges, check_hiring)
+                  hire_army, hire_cavalry, hire_infantry, build_sieges, check_hiring, hire_spy,
+                  attack, FINAL)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -133,9 +134,10 @@ def run():
 
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Расчистить путь к городу 🧭)$'), path_to_city),
                              MessageHandler(Filters.regex('^(На разведку! 🥷🏻)$'), scouting),
-                             MessageHandler(Filters.regex('^(В атаку! ⚔️)$'), lambda: ...),
+                             MessageHandler(Filters.regex('^(В атаку! ⚔️)$'), attack),
                              MessageHandler(Filters.regex('^(Информация о противнике ℹ️)$'), get_info_about_opposite),
                              MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            FINAL: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
             INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
 
             WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
@@ -162,6 +164,7 @@ def run():
             HIRE_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                         MessageHandler(Filters.regex('^(Нанять пехоту)$'), hire_infantry),
                         MessageHandler(Filters.regex('^(Нанять кавалерию)$'), hire_cavalry),
+                        MessageHandler(Filters.regex('^(Нанять разведчиков)$'), hire_spy),
                         MessageHandler(Filters.regex('^(Построить осадные машины)$'), build_sieges)],
             HIRE_INFANTRY: [MessageHandler(Filters.text, check_hiring)],
             HIRE_CAVALRY: [MessageHandler(Filters.text, check_hiring)],

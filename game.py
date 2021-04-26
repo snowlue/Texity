@@ -16,7 +16,7 @@ list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchal
  WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING,
  WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL,
  WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING, HIRE_ARMY, HIRE_INFANTRY, HIRE_CAVALRY, BUILD_SIEGES,
- SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY) = range(26)
+ SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, FINAL) = range(28)
 
 PRICE_OF_BUILDINGS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
@@ -100,7 +100,7 @@ def population(update: Update, context: CallbackContext):
 
 
 def hire_army(update: Update, context: CallbackContext):
-    hire_army_markup = ReplyKeyboardMarkup([['Нанять пехоту'], ['Нанять кавалерию'], ['Построить осадные машины'], ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
+    hire_army_markup = ReplyKeyboardMarkup([['Нанять пехоту'], ['Нанять кавалерию'], ['Нанять разведчиков'], ['Построить осадные машины'], ['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
     update.message.reply_text('Каких войск вы хотите нанять?', reply_markup=hire_army_markup)
     update.message.reply_text('Помните, что армия набирается из населения. При увеличении числа военных уменьшается число населения.')
     return HIRE_ARMY
@@ -117,14 +117,24 @@ def hire_cavalry(update: Update, context: CallbackContext):
     context.chat_data['to_hire'] = 'cavalry'
     return HIRE_CAVALRY
 
+
+def hire_spy(update: Update, context: CallbackContext):
+    update.message.reply_text('На одного разведчика вы должны потратить 100 единиц железа, 300 единиц золота, а также 50 единиц еды')
+    context.chat_data['to_hire'] = 'spy'
+    return HIRE_SPY
+
+
 def build_sieges(update: Update, context: CallbackContext):
     update.message.reply_text('На постройку одной осадной машины нужно 350 единиц дерева, 200 единиц железа, 100 камней')
     context.chat_data['to_hire'] = 'sieges'
     return BUILD_SIEGES
 
+
 ARMY = {'infantry': [['iron', 40], ['gold', 20], ['food', 10]],
         'cavalry': [['iron', 100], ['gold', 50], ['food', 50]],
+        'spy': [['iron', 100], ['gold', 300], ['food', 50]],
         'sieges': [['iron', 200], ['stone', 100], ['wood', 350]]}
+
 
 def check_hiring(update: Update, context: CallbackContext):
     markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
@@ -160,6 +170,7 @@ def check_hiring(update: Update, context: CallbackContext):
         update.message.reply_text('Похоже, то что вы ввели, не выглядит как натуральное число.',
                                   reply_markup=markup_fail)
         return CHANGE_OR_GO_TO_MENU_ARMY
+
 
 def tranzaction_hiring(type, count, res_1, count_1, res_2, count_2, res_3, count_3, user):
     cur.execute('UPDATE army SET {0} = (SELECT {0} FROM army WHERE tg_id = {2}) + {1} WHERE tg_id = {2}'.format(type, count, user))
@@ -534,7 +545,7 @@ def remelt_gold(update: Update, context: CallbackContext):
 def foreign_policy(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     war_level, in_spying = cur.execute('SELECT foreign_policy, in_spying FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()
-    infantry, cavalry, sieges = cur.execute('SELECT * FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[1:]
+    infantry, cavalry, sieges = cur.execute('SELECT * FROM army WHERE tg_id = {}'.format(user_id)).fetchone()[1:-1]
     
     if in_spying == -1:
         foreign_policy_markup = ReplyKeyboardMarkup([
@@ -770,6 +781,28 @@ def scouting(update: Update, context: CallbackContext):
     
     return FOREIGN_POLICY
 
+def attack(update: Update, context: CallbackContext):
+    markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
+    sieges = cur.execute('SELECT sieges FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    infantry = cur.execute('SELECT infantry FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    cavalry = cur.execute('SELECT cavalry FROM army WHERE tg_id = {}'.format(update.message.from_user.id)).fetchone()[0]
+    # проверь сравнение переменных и сделай .format() для скобочек
+    if context.chat_data['opposite.requiered_sieges'] > sieges:
+        update.message.reply_text('Наших осадных машин не хватило, чтобы пробить стену города. Наша армия уничтожена.', reply_markup=markup)
+        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+    elif context.chat_data['opposite.infantry'] + 10 * context.chat_data['opposite.cavalry'] <= infantry + 10 * cavalry:
+        update.message.reply_text('Мы победили. Город присоединился к нашей растущей агломерации.')
+        update.message.reply_text('Мы получили: {} еды, {} камней, {} дерева, {} железа, {} золота')
+        update.message.reply_text('Число наших производтв увеличилось: {} ферм, {} каменоломен, {} лесопилки.')
+        update.message.reply_text('Население нашей агломерации увеличилось на {} человек.', reply_markup=markup)
+    else:
+        update.message.reply_text('К сожалению, защитники города оказались сильнее. Наша армия уничтожена.', reply_markup=markup)
+        cur.execute('UPDATE army SET infantry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET cavalry = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+        cur.execute('UPDATE army SET sieges = 0 WHERE tg_id = {}'.format(update.message.from_user.id))
+    return FINAL
 
 @log
 def get_info_about_opposite(update: Update, context: CallbackContext):
