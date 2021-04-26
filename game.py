@@ -1,7 +1,7 @@
 import random
 import sqlite3
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import CallbackContext
 
 from logger import log
@@ -12,11 +12,11 @@ con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
 list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchall()]
 
-(WAITING_FOR_CITY_NAME, MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY, INFO,
+(WAITING_FOR_CITY_NAME, MENU, RESOURCES, MARKET, POPULATION, CONSTRUCTION, FOREIGN_POLICY,
  WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING,
  WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL,
- WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING, HIRE_ARMY, HIRE_INFANTRY, HIRE_CAVALRY, BUILD_SIEGES,
- SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, FINAL) = range(28)
+ WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING, HIRE_ARMY, HIRING, 
+ SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, BACK_TO_MENU) = range(25)
 
 PRICE_OF_BUILDINGS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
@@ -29,7 +29,6 @@ PRICE_OF_BUILDINGS = {
 
 @log
 def get_info_about_city(update: Update, context: CallbackContext):
-    resources_markup = ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=False, resize_keyboard=True)
     user_id = update.message.from_user.id
     farms = cur.execute('SELECT farms FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     quarries = cur.execute('SELECT quarries FROM buildings WHERE tg_id = {}'.format(user_id)).fetchone()[0]
@@ -40,8 +39,8 @@ def get_info_about_city(update: Update, context: CallbackContext):
     x = float(cur.execute('SELECT city_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
     y = float(cur.execute('SELECT next_level FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0])
     city_level = '{}/{}'.format(int(x * 100), int(y * 100))
-    population_support = \
-    cur.execute('SELECT population_support FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
+    population_support = cur.execute('SELECT population_support '
+                                     'FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
     update.message.reply_text('Город "{}"\n'
                               'Уровень города: {}\n'
                               'Поддержка от населения: {}%'.format(city_name, '{} ({})'.format(int(x), city_level),
@@ -52,8 +51,8 @@ def get_info_about_city(update: Update, context: CallbackContext):
                               '🪵 Лесопилки: {}\n'
                               '🏭 Шахты: {}\n'
                               '💰 Золотые рудники: {}'.format(
-        farms, quarries, sawmills, iron_mines, gold_mines), reply_markup=resources_markup)
-    return INFO
+        farms, quarries, sawmills, iron_mines, gold_mines))
+    return MENU
 
 
 @log
@@ -109,25 +108,25 @@ def hire_army(update: Update, context: CallbackContext):
 def hire_infantry(update: Update, context: CallbackContext):
     update.message.reply_text('На одного воина вы должны потратить 40 единиц железа, 20 единиц золота, а также 10 единиц еды')
     context.chat_data['to_hire'] = 'infantry'
-    return HIRE_INFANTRY
+    return HIRING
 
 
 def hire_cavalry(update: Update, context: CallbackContext):
     update.message.reply_text('На одного кавалериста вы должны потратить 100 единиц железа, 50 единиц золота, а также 50 единиц еды')
     context.chat_data['to_hire'] = 'cavalry'
-    return HIRE_CAVALRY
+    return HIRING
 
 
 def hire_spy(update: Update, context: CallbackContext):
     update.message.reply_text('На одного разведчика вы должны потратить 100 единиц железа, 300 единиц золота, а также 50 единиц еды')
     context.chat_data['to_hire'] = 'spy'
-    return HIRE_SPY
+    return HIRING
 
 
 def build_sieges(update: Update, context: CallbackContext):
     update.message.reply_text('На постройку одной осадной машины нужно 350 единиц дерева, 200 единиц железа, 100 камней')
     context.chat_data['to_hire'] = 'sieges'
-    return BUILD_SIEGES
+    return HIRING
 
 
 ARMY = {'infantry': [['iron', 40], ['gold', 20], ['food', 10]],
@@ -843,7 +842,7 @@ def attack(update: Update, context: CallbackContext):
         cur.execute('UPDATE cities SET in_spying = 0 WHERE tg_id = {0}'.format(user_id))
     
     con.commit()
-    return FINAL
+    return BACK_TO_MENU
 
 @log
 def get_info_about_opposite(update: Update, context: CallbackContext):

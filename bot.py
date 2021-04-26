@@ -1,26 +1,30 @@
 from datetime import datetime
 from secrets import API_KEY
 
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, Update
 from telegram.ext import (CallbackContext, CommandHandler, ConversationHandler,
                           Filters, MessageHandler, Updater)
 
-from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
+from game import (BACK_TO_MENU, CHANGE_OR_GO_TO_MENU_ARMY,
+                  CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
                   CHANGE_OR_GO_TO_MENU_REMELTING, CONSTRUCTION, FOREIGN_POLICY,
-                  INFO, MARKET, MENU, POPULATION, RESOURCES, SUCCESSFUL_BUILD,
-                  SUCCESSFUL_BUYING, SUCCESSFUL_REMELTING,
-                  WAITING_FOR_CITY_NAME, WAITING_FOR_COUNT_OF_METAL,
-                  WAITING_FOR_COUNT_TO_BUILD, WAITING_FOR_SUM_TO_BUY,
-                  WAITING_FOR_TYPE_OF_METAL, build_farms, build_gold_mines,
-                  build_iron_mines, build_quarries, build_sawmills, buy_food,
+                  HIRE_ARMY, HIRING, MARKET, MENU, POPULATION, RESOURCES,
+                  SUCCESSFUL_BUILD, SUCCESSFUL_BUYING, SUCCESSFUL_HIRING,
+                  SUCCESSFUL_REMELTING, WAITING_FOR_CITY_NAME,
+                  WAITING_FOR_COUNT_OF_METAL, WAITING_FOR_COUNT_TO_BUILD,
+                  WAITING_FOR_SUM_TO_BUY, WAITING_FOR_TYPE_OF_METAL, attack,
+                  build_farms, build_gold_mines, build_iron_mines,
+                  build_quarries, build_sawmills, build_sieges, buy_food,
                   buy_iron, buy_stone, buy_wood, check_build, check_buy,
-                  check_remelt, con, construction, cultivating, cur,
-                  foreign_policy, get_info_about_city, get_info_about_opposite,
-                  list_of_players, market, path_to_city, population,
-                  remelt_gold, remelt_iron, remelting, resources, scouting,
-                  HIRE_ARMY, HIRE_CAVALRY, HIRE_INFANTRY, BUILD_SIEGES, SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY,
-                  hire_army, hire_cavalry, hire_infantry, build_sieges, check_hiring, hire_spy,
-                  attack, FINAL)
+                  check_hiring, check_remelt, con, construction, cultivating,
+                  cur, foreign_policy, get_info_about_city,
+                  get_info_about_opposite, hire_army, hire_cavalry,
+                  hire_infantry, hire_spy, list_of_players, market,
+                  path_to_city, population, remelt_gold, remelt_iron,
+                  remelting, resources, scouting)
+from helpfuncs import (HELP, about_city, about_constrution,
+                       about_foreign_policy, about_market, about_population,
+                       about_resources, help_)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -37,10 +41,9 @@ def start(update: Update, context: CallbackContext) -> int:
     user_id = update.message.from_user.id
     if user_id not in list_of_players:
         update.message.reply_text(
-            '''
-Приветствуем тебя в Texity - пошаговой стратегии, в которой ты можешь развивать свой город, чтобы достичь светлого экономического будущего.
-
-Итак, введи имя своего города! ''',
+            'Приветствуем тебя в Texity - пошаговой стратегии, в которой '
+            'ты можешь развивать свой город, чтобы достичь светлого экономического '
+            'будущего. Итак, введи имя своего города! ''',
         )
 
         return WAITING_FOR_CITY_NAME
@@ -57,17 +60,17 @@ def start(update: Update, context: CallbackContext) -> int:
 @log
 def set_name(update: Update, context: CallbackContext) -> int:
     name, user_id = update.message.text, update.message.from_user.id
-    update.message.reply_text('''
-Прекрасный выбор! Мы уверены, что ваш город с гордым именем {} ждут небывалые свершения.
-Удачи, император! ✊🏻
-Вы всегда можете отправить команду /help, чтобы получить подробную справку по управлению и механикам.
-    '''.format(name))
+    update.message.reply_text(
+        'Прекрасный выбор! Мы уверены, что ваш город с гордым именем {} ждут '
+        'небывалые свершения. Удачи, император! ✊🏻\n Вы всегда можете отправить '
+        'команду /help, чтобы получить подробную справку по управлению и механикам.'.format(name))
 
     cur.execute('INSERT INTO cities VALUES ({}, "{}", 0.5, 1, 2, 1, 0)'.format(user_id, name))
     cur.execute('INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)'.format(user_id))
     cur.execute('INSERT INTO army VALUES ({}, 15, 5, 3)'.format(user_id))
-    cur.execute('INSERT INTO resources '
-                'VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 100, "{}")'.format(user_id, datetime.now().isoformat(sep=' ')))
+    cur.execute('INSERT INTO resources VALUES ({}, 1000, '
+                '1000, 1000, 1000, 1000, 1000, 1000, 1000, "{}")'.format(user_id,
+                                                                         datetime.now().isoformat(sep=' ')))
     list_of_players.append(user_id)
     con.commit()
     context.chat_data['city_name'] = name
@@ -77,16 +80,6 @@ def set_name(update: Update, context: CallbackContext) -> int:
                                reply_markup=markup)
     img_city.seek(0)
     return MENU
-
-
-@log
-def help(update: Update, context: CallbackContext) -> int:
-    # todo: Вызввать админов или порешать, как должен работать /help и файл texitybot 
-    update.message.reply_text(
-        'Мир суров. Поэтому рабирайся сам.', reply_markup=ReplyKeyboardRemove()
-    )
-
-    return ConversationHandler.END
 
 
 @log
@@ -110,35 +103,41 @@ def run():
                    MessageHandler(Filters.regex('^(Рынок)$'), market),
                    MessageHandler(Filters.regex('^(Население)$'), population),
                    MessageHandler(Filters.regex('^(Строительство)$'), construction),
-                   MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy)],
+                   MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy),
+                   CommandHandler('help', help_)],
 
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                         MessageHandler(Filters.regex('^(Собрать ресурсы)$'), cultivating),
-                        MessageHandler(Filters.regex('^(Переплавить руду)$'), remelting)],
+                        MessageHandler(Filters.regex('^(Переплавить руду)$'), remelting),
+                        CommandHandler('help', help_)],
 
             MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                      MessageHandler(Filters.regex('^(Еда)$'), buy_food),
                      MessageHandler(Filters.regex('^(Дерево)$'), buy_wood),
                      MessageHandler(Filters.regex('^(Камни)$'), buy_stone),
-                     MessageHandler(Filters.regex('^(Железо)$'), buy_iron)],
+                     MessageHandler(Filters.regex('^(Железо)$'), buy_iron),
+                     CommandHandler('help', help_)],
 
             POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                         MessageHandler(Filters.regex('^(Нанять армию)$'), hire_army)],
+                         MessageHandler(Filters.regex('^(Нанять армию)$'), hire_army),
+                         CommandHandler('help', help_)],
 
             CONSTRUCTION: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
                            MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
                            MessageHandler(Filters.regex('^(Каменоломня)$'), build_quarries),
                            MessageHandler(Filters.regex('^(Золотой рудник)$'), build_gold_mines),
                            MessageHandler(Filters.regex('^(Железный рудник)$'), build_iron_mines),
-                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+                           MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                           CommandHandler('help', help_)],
 
             FOREIGN_POLICY: [MessageHandler(Filters.regex('^(Расчистить путь к городу 🧭)$'), path_to_city),
                              MessageHandler(Filters.regex('^(На разведку! 🥷🏻)$'), scouting),
                              MessageHandler(Filters.regex('^(В атаку! ⚔️)$'), attack),
                              MessageHandler(Filters.regex('^(Информация о противнике ℹ️)$'), get_info_about_opposite),
-                             MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            FINAL: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
-            INFO: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+                             MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                             CommandHandler('help', help_)],
+            BACK_TO_MENU: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                           CommandHandler('help', help_)],
 
             WAITING_FOR_CITY_NAME: [MessageHandler(Filters.text, set_name)],
             WAITING_FOR_SUM_TO_BUY: [MessageHandler(Filters.text, check_buy)],
@@ -149,31 +148,46 @@ def run():
             WAITING_FOR_COUNT_OF_METAL: [MessageHandler(Filters.text, check_remelt)],
 
             CHANGE_OR_GO_TO_MENU_MARKET: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                          MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market)],
+                                          MessageHandler(Filters.regex('^(Попробовать еще раз)$'), market),
+                                          CommandHandler('help', help_)],
             CHANGE_OR_GO_TO_MENU_BUILDINGS: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction)],
+                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), construction),
+                                             CommandHandler('help', help_)],
             CHANGE_OR_GO_TO_MENU_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), remelting)],
+                                             MessageHandler(Filters.regex('^(Попробовать еще раз)$'), remelting),
+                                             CommandHandler('help', help_)],
+            CHANGE_OR_GO_TO_MENU_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                        MessageHandler(Filters.regex('^(Попробовать еще раз)$'), hire_army),
+                                        CommandHandler('help', help_)],
 
             SUCCESSFUL_BUYING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                MessageHandler(Filters.regex('^(Продолжить покупки)$'), market)],
+                                MessageHandler(Filters.regex('^(Продолжить покупки)$'), market),
+                                CommandHandler('help', help_)],
             SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)],
+                               MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction),
+                               CommandHandler('help', help_)],
             SUCCESSFUL_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)],
+                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting),
+                                   CommandHandler('help', help_)],
+            SUCCESSFUL_HIRING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                MessageHandler(Filters.regex('^(Нанять еще войска)$'), hire_army),
+                                CommandHandler('help', help_)],
+
             HIRE_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                         MessageHandler(Filters.regex('^(Нанять пехоту)$'), hire_infantry),
                         MessageHandler(Filters.regex('^(Нанять кавалерию)$'), hire_cavalry),
                         MessageHandler(Filters.regex('^(Нанять разведчиков)$'), hire_spy),
-                        MessageHandler(Filters.regex('^(Построить осадные машины)$'), build_sieges)],
-            HIRE_INFANTRY: [MessageHandler(Filters.text, check_hiring)],
-            HIRE_CAVALRY: [MessageHandler(Filters.text, check_hiring)],
-            BUILD_SIEGES: [MessageHandler(Filters.text, check_hiring)],
-            SUCCESSFUL_HIRING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                MessageHandler(Filters.regex('^(Нанять еще войска)$'), hire_army)],
-            CHANGE_OR_GO_TO_MENU_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                MessageHandler(Filters.regex('^(Попробовать еще раз)$'), hire_army)]
+                        MessageHandler(Filters.regex('^(Построить осадные машины)$'), build_sieges),
+                        CommandHandler('help', help_)],
+            HIRING: [MessageHandler(Filters.text, check_hiring)],
 
+            HELP: [MessageHandler(Filters.regex('^(Про рынок)$'), about_market),
+                   MessageHandler(Filters.regex('^(Про город)$'), about_city),
+                   MessageHandler(Filters.regex('^(Про ресурсы)$'), about_resources),
+                   MessageHandler(Filters.regex('^(Про население)$'), about_population),
+                   MessageHandler(Filters.regex('^(Про строительство)$'), about_constrution),
+                   MessageHandler(Filters.regex('^(Про внешнюю политику)$'), about_foreign_policy),
+                   MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)]
 
         },
         fallbacks=[CommandHandler('cancel', menu)],
