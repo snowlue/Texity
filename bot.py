@@ -17,7 +17,9 @@ from game import (CHANGE_OR_GO_TO_MENU_BUILDINGS, CHANGE_OR_GO_TO_MENU_MARKET,
                   check_remelt, con, construction, cultivating, cur,
                   foreign_policy, get_info_about_city, get_info_about_opposite,
                   list_of_players, market, path_to_city, population,
-                  remelt_gold, remelt_iron, remelting, resources, scouting)
+                  remelt_gold, remelt_iron, remelting, resources, scouting,
+                  HIRE_ARMY, HIRE_CAVALRY, HIRE_INFANTRY, BUILD_SIEGES, SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY,
+                  hire_army, hire_cavalry, hire_infantry, build_sieges, check_hiring)
 from logger import log
 
 img_city = open("city.jpg", 'rb')
@@ -63,7 +65,7 @@ def set_name(update: Update, context: CallbackContext) -> int:
     cur.execute('INSERT INTO cities VALUES ({}, "{}", 0.5, 1, 2, 1, 0)'.format(user_id, name))
     cur.execute('INSERT INTO buildings VALUES ({}, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)'.format(user_id))
     cur.execute('INSERT INTO resources '
-                'VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, "{}")'.format(user_id, datetime.now().isoformat(sep=' ')))
+                'VALUES ({}, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 100, "{}")'.format(user_id, datetime.now().isoformat(sep=' ')))
     list_of_players.append(user_id)
     con.commit()
     context.chat_data['city_name'] = name
@@ -118,7 +120,8 @@ def run():
                      MessageHandler(Filters.regex('^(Камни)$'), buy_stone),
                      MessageHandler(Filters.regex('^(Железо)$'), buy_iron)],
 
-            POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+            POPULATION: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                         MessageHandler(Filters.regex('^(Нанять армию)$'), hire_army)],
 
             CONSTRUCTION: [MessageHandler(Filters.regex('^(Лесопилка)$'), build_sawmills),
                            MessageHandler(Filters.regex('^(Ферма)$'), build_farms),
@@ -154,7 +157,18 @@ def run():
             SUCCESSFUL_BUILD: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                                MessageHandler(Filters.regex('^(Продолжить строительство)$'), construction)],
             SUCCESSFUL_REMELTING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
-                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)]
+                                   MessageHandler(Filters.regex('^(Продолжить переплавку)$'), remelting)],
+            HIRE_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                        MessageHandler(Filters.regex('^(Нанять пехоту)$'), hire_infantry),
+                        MessageHandler(Filters.regex('^(Нанять кавалерию)$'), hire_cavalry),
+                        MessageHandler(Filters.regex('^(Построить осадные машины)$'), build_sieges)],
+            HIRE_INFANTRY: [MessageHandler(Filters.text, check_hiring)],
+            HIRE_CAVALRY: [MessageHandler(Filters.text, check_hiring)],
+            BUILD_SIEGES: [MessageHandler(Filters.text, check_hiring)],
+            SUCCESSFUL_HIRING: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                MessageHandler(Filters.regex('^(Нанять еще войска)$'), hire_army)],
+            CHANGE_OR_GO_TO_MENU_ARMY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
+                                MessageHandler(Filters.regex('^(Попробовать еще раз)$'), hire_army)]
 
 
         },
