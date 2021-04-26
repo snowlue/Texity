@@ -48,7 +48,7 @@ def about_resources(update: Update, context: CallbackContext):
 @log
 def about_population(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Бла-бла-бла')
+        'В население Вы можете узнать свое население и про вашу армию')
     return ABOUT_POPULATION
 
 
@@ -62,7 +62,7 @@ def about_constrution(update: Update, context: CallbackContext):
 @log
 def about_foreign_policy(update: Update, context: CallbackContext):
     update.message.reply_text(
-        'Бла-бла-бла')
+        'Во внешней политике Вы можете узнать уровень своего города, а также про ваше войско')
     return ABOUT_FOREIGN_POLICY
 
 
