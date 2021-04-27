@@ -2,6 +2,7 @@ import random
 import sqlite3
 
 from telegram.ext import CallbackContext
+from random import choice
 
 con = sqlite3.connect("players.db", check_same_thread=False)
 cur = con.cursor()
@@ -50,6 +51,9 @@ def transaction_build(type_1, count_1, type_2, count_2, type_3, count_3, buildin
                 'WHERE tg_id = {1}'.format(type_3, user, count_3))
     cur.execute('UPDATE buildings SET {0} = (SELECT {0} FROM buildings WHERE tg_id = {1}) + {2} '
                 'WHERE tg_id = {1}'.format(building, user, count_of_buildings))
+    if building == 'houses':
+        cur.execute('UPDATE resources SET population = (SELECT population FROM resources WHERE tg_id = {}) + {} * {} '
+                    'WHERE tg_id = {}'.format(user, choice([0.7, 0.8, 0.9, 1, 1.1, 1.2, 1.3]), 10, user))
     con.commit()
 
 

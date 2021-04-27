@@ -19,15 +19,24 @@ list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchal
  WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING,
  WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL,
  WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING, HIRE_ARMY, HIRING, 
- SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, BACK_TO_MENU) = range(25)
+ SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, BACK_TO_MENU, PRODUCTIONS, WAITING_FOR_TYPE_OF_BUILDING, STORAGES, OTHERS) = range(29)
 
-PRICE_OF_BUILDINGS = {
+PRICE_OF_PRODUCTIONS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
     'sawmills': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
     'quarries': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
     'iron_mines': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
     'gold_mines': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]
 }
+PRICE_OF_STORAGES = {'food': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'wood': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'stone': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'iron': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'gold': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'iron_ore': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
+                     'gold_ore': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]}
+
+PRICE_OF_OTHERS = {'houses': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]}
 
 
 @log
@@ -138,6 +147,114 @@ ARMY = {'infantry': [['iron', 40], ['gold', 20], ['food', 10]],
         'sieges': [['iron', 200], ['stone', 100], ['wood', 350]]}
 
 
+def chose_type_of_buildings(update: Update, context: CallbackContext):
+    markup = ReplyKeyboardMarkup([['Производства'], ['Хранилища'], ['Прочие строения'], ['Вернуться в меню']],
+                                 one_time_keyboard=False, resize_keyboard=True)
+    update.message.reply_text('Что вы хотите построить?', reply_markup=markup)
+    return WAITING_FOR_TYPE_OF_BUILDING
+
+@log
+def build_productions(update: Update, context: CallbackContext):
+    construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
+                                               ['Железный рудник', 'Золотой рудник'],
+                                               ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
+    update.message.reply_text(
+        "Каких производств желаете построить?", reply_markup=construction_markup)
+    return PRODUCTIONS
+
+
+def build_storages(update: Update, context: CallbackContext):
+    storages_markup = ReplyKeyboardMarkup([['Еда', 'Камни', 'Дерево'],
+                                           ['Железо', 'Золото'],
+                                           ['Железная руда', 'Золотая руда'],
+                                           ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
+    update.message.reply_text('Хранилища для каких ресурсов желаете построить?', reply_markup=storages_markup)
+    return STORAGES
+
+
+def build_others(update: Update, context: CallbackContext):
+    others_markup = ReplyKeyboardMarkup([['Жилые здания'], ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
+    update.message.reply_text('Какие здания хотите построить?', reply_markup=others_markup)
+    return OTHERS
+
+
+def build_storages_food(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища еды составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['food']]))
+    context.chat_data['to_build'] = 'food_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_wood(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища дерева составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['wood']]))
+    context.chat_data['to_build'] = 'wood_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_stone(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища камней составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['stone']]))
+    context.chat_data['to_build'] = 'stone_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_iron(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища железа составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['iron']]))
+    context.chat_data['to_build'] = 'iron_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_gold(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища железа составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['gold']]))
+    context.chat_data['to_build'] = 'gold_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_iron_ore(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища железной руды составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['iron_ore']]))
+    context.chat_data['to_build'] = 'iron_ore_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_storages_gold_ore(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного хранилища золотой руды составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_STORAGES['gold_ore']]))
+    context.chat_data['to_build'] = 'gold_ore_storages'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+def build_houses(update: Update, context: CallbackContext):
+    update.message.reply_text('Стоимость одного дома составляет: \n'
+                              ' {} дерева \n'
+                              ' {} железа \n'
+                              ' {} дерева \n'
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_OTHERS['houses']]))
+    context.chat_data['to_build'] = 'houses'
+    return WAITING_FOR_COUNT_TO_BUILD
+
+
+
+
+
+
 def check_hiring(update: Update, context: CallbackContext):
     markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
                                       resize_keyboard=True)
@@ -174,14 +291,7 @@ def check_hiring(update: Update, context: CallbackContext):
         return CHANGE_OR_GO_TO_MENU_ARMY
 
 
-@log
-def construction(update: Update, context: CallbackContext):
-    construction_markup = ReplyKeyboardMarkup([['Ферма', 'Каменоломня', 'Лесопилка'],
-                                               ['Железный рудник', 'Золотой рудник'],
-                                               ['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True)
-    update.message.reply_text(
-        "Какие производства желаете построить?", reply_markup=construction_markup)
-    return CONSTRUCTION
+
 
 
 @log
@@ -315,16 +425,25 @@ def check_buy(update: Update, context: CallbackContext):
 
 @log
 def check_build(update: Update, context: CallbackContext):
-    count_of_buildings = int(update.message.text)
     markup_fail = ReplyKeyboardMarkup([['Попробовать еще раз'], ['Вернуться в меню']], one_time_keyboard=False,
                                       resize_keyboard=True)
     markup_success = ReplyKeyboardMarkup([['Продолжить строительство'], ['Вернуться в меню']], one_time_keyboard=False,
                                          resize_keyboard=True)
     try:
+        count_of_buildings = int(update.message.text)
         spisok = []
         if count_of_buildings <= 0:
             raise ValueError
-        for i in PRICE_OF_BUILDINGS[context.chat_data['to_build']]:
+        if context.chat_data['to_build'].endswith('_storages'):
+            spisok_ = PRICE_OF_STORAGES
+            key = context.chat_data['to_build'][:-9]
+        elif context.chat_data['to_build'] == 'houses':
+            spisok_ = PRICE_OF_OTHERS
+            key = 'houses'
+        else:
+            spisok_ = PRICE_OF_PRODUCTIONS
+            key = context.chat_data['to_build']
+        for i in spisok_[key]:
             total_count_of_resources = cur.execute(
                 'SELECT {} FROM resources WHERE tg_id = {}'.format(i[0], update.message.from_user.id)).fetchone()[0]
             if i[1] * count_of_buildings > total_count_of_resources:
@@ -332,7 +451,7 @@ def check_build(update: Update, context: CallbackContext):
                 return CHANGE_OR_GO_TO_MENU_BUILDINGS
             spisok.append([i[0], i[1] * count_of_buildings])
         else:
-            update.message.reply_text('Вы успешно построили предприятия!', reply_markup=markup_success)
+            update.message.reply_text('Строительство успешно завершено!', reply_markup=markup_success)
             transaction_build(spisok[0][0], spisok[0][1], spisok[1][0], spisok[1][1], spisok[2][0], spisok[2][1],
                               context.chat_data['to_build'], count_of_buildings, update.message.from_user.id)
             buildings = cur.execute('SELECT {} FROM buildings WHERE tg_id = {}'
@@ -407,7 +526,7 @@ def build_farms(update: Update, context: CallbackContext):
                               ' {} дерева \n'
                               ' {} железа \n'
                               ' {} дерева \n'
-                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_BUILDINGS['farms']]))
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_PRODUCTIONS['farms']]))
     context.chat_data['to_build'] = 'farms'
     return WAITING_FOR_COUNT_TO_BUILD
 
@@ -418,7 +537,7 @@ def build_quarries(update: Update, context: CallbackContext):
                               ' {} дерева \n'
                               ' {} железа \n'
                               ' {} дерева \n'
-                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_BUILDINGS['quarries']]))
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_PRODUCTIONS['quarries']]))
     context.chat_data['to_build'] = 'quarries'
     return WAITING_FOR_COUNT_TO_BUILD
 
@@ -429,7 +548,7 @@ def build_sawmills(update: Update, context: CallbackContext):
                               ' {} дерева \n'
                               ' {} железа \n'
                               ' {} дерева \n'
-                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_BUILDINGS['sawmills']]))
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_PRODUCTIONS['sawmills']]))
     context.chat_data['to_build'] = 'sawmills'
     return WAITING_FOR_COUNT_TO_BUILD
 
@@ -440,7 +559,7 @@ def build_iron_mines(update: Update, context: CallbackContext):
                               ' {} дерева \n'
                               ' {} железа \n'
                               ' {} дерева \n'
-                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_BUILDINGS['iron_mines']]))
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_PRODUCTIONS['iron_mines']]))
     context.chat_data['to_build'] = 'iron_mines'
     return WAITING_FOR_COUNT_TO_BUILD
 
@@ -451,7 +570,7 @@ def build_gold_mines(update: Update, context: CallbackContext):
                               ' {} дерева \n'
                               ' {} железа \n'
                               ' {} дерева \n'
-                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_BUILDINGS['gold_mines']]))
+                              ' {} еды для рабочих'.format(*[i[1] for i in PRICE_OF_PRODUCTIONS['gold_mines']]))
     context.chat_data['to_build'] = 'gold_mines'
     return WAITING_FOR_COUNT_TO_BUILD
 
@@ -714,10 +833,10 @@ def attack(update: Update, context: CallbackContext):
 def get_info_about_opposite(update: Update, context: CallbackContext):
     user_id = update.message.from_user.id
     in_spying = cur.execute('SELECT in_spying FROM cities WHERE tg_id = {}'.format(user_id)).fetchone()[0]
-    
+
     if 'opposite.name' not in context.chat_data:
         get_opposite_city(user_id, context, 3)
-        
+
     if in_spying == -1:
         foreign_policy_markup = ReplyKeyboardMarkup([
             ['В атаку! ⚔️'],
@@ -730,7 +849,7 @@ def get_info_about_opposite(update: Update, context: CallbackContext):
             ['Информация о противнике ℹ️'],
             ['Вернуться в меню']
         ], one_time_keyboard=False, resize_keyboard=True)
-    
+
     a = 'Мы можем поити в разведку, чтобы узнать более точную информацию.' if in_spying != -1 else 'Сейчас мы может только атаковать город.'
     update.message.reply_text(
         'Вот что нам известно на текущий момент.\n'
