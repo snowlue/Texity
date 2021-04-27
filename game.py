@@ -19,7 +19,7 @@ list_of_players = [i[0] for i in cur.execute('SELECT tg_id FROM cities').fetchal
  WAITING_FOR_SUM_TO_BUY, CHANGE_OR_GO_TO_MENU_MARKET, NOT_ENOUGH_GOLD, BAD_SUMM, SUCCESSFUL_BUYING,
  WAITING_FOR_COUNT_TO_BUILD, SUCCESSFUL_BUILD, CHANGE_OR_GO_TO_MENU_BUILDINGS, WAITING_FOR_TYPE_OF_METAL,
  WAITING_FOR_COUNT_OF_METAL, SUCCESSFUL_REMELTING, CHANGE_OR_GO_TO_MENU_REMELTING, HIRE_ARMY, HIRING, 
- SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, BACK_TO_MENU, PRODUCTIONS, WAITING_FOR_TYPE_OF_BUILDING, STORAGES, OTHERS) = range(29)
+ SUCCESSFUL_HIRING, CHANGE_OR_GO_TO_MENU_ARMY, HIRE_SPY, BACK_TO_MENU, PRODUCTIONS, WAITING_FOR_TYPE_OF_BUILDING, STORAGES, OTHERS, GET_INFO_ABOUT_CITY) = range(30)
 
 PRICE_OF_PRODUCTIONS = {
     'farms': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]],
@@ -63,8 +63,8 @@ def get_info_about_city(update: Update, context: CallbackContext):
                               '🪵 Лесопилки: {}\n'
                               '🏭 Шахты: {}\n'
                               '💰 Золотые рудники: {}'.format(
-        farms, quarries, sawmills, iron_mines, gold_mines))
-    return MENU
+        farms, quarries, sawmills, iron_mines, gold_mines), reply_markup=ReplyKeyboardMarkup([['Вернуться в меню']], one_time_keyboard=True, resize_keyboard=True))
+    return GET_INFO_ABOUT_CITY
 
 
 @log

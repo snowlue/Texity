@@ -24,7 +24,7 @@ from game import (BACK_TO_MENU, CHANGE_OR_GO_TO_MENU_ARMY,
                   remelting, resources, scouting, WAITING_FOR_TYPE_OF_BUILDING, STORAGES, OTHERS,
                   build_productions, build_storages, build_others, build_storages_food, build_storages_wood,
                   build_storages_iron, build_storages_gold, build_storages_stone, build_storages_iron_ore, build_storages_gold_ore,
-                  build_houses)
+                  build_houses, GET_INFO_ABOUT_CITY)
 from helpfuncs import (HELP, about_city, about_constrution,
                        about_foreign_policy, about_market, about_population,
                        about_resources, help_)
@@ -108,6 +108,9 @@ def run():
                    MessageHandler(Filters.regex('^(Строительство)$'), chose_type_of_buildings),
                    MessageHandler(Filters.regex('^(Внешняя политика)$'), foreign_policy),
                    CommandHandler('help', help_)],
+
+            GET_INFO_ABOUT_CITY: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu)],
+
 
             RESOURCES: [MessageHandler(Filters.regex('^(Вернуться в меню)$'), menu),
                         MessageHandler(Filters.regex('^(Собрать ресурсы)$'), cultivating),
