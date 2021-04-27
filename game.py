@@ -37,6 +37,10 @@ PRICE_OF_STORAGES = {'food': [['wood', 240], ['stone', 120], ['iron', 240], ['fo
                      'gold_ore': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]}
 
 PRICE_OF_OTHERS = {'houses': [['wood', 240], ['stone', 120], ['iron', 240], ['food', 200]]}
+ARMY = {'infantry': [['iron', 40], ['gold', 20], ['food', 10]],
+        'cavalry': [['iron', 100], ['gold', 50], ['food', 50]],
+        'spy': [['iron', 100], ['gold', 300], ['food', 50]],
+        'sieges': [['iron', 200], ['stone', 100], ['wood', 350]]}
 
 
 @log
@@ -141,10 +145,7 @@ def build_sieges(update: Update, context: CallbackContext):
     return HIRING
 
 
-ARMY = {'infantry': [['iron', 40], ['gold', 20], ['food', 10]],
-        'cavalry': [['iron', 100], ['gold', 50], ['food', 50]],
-        'spy': [['iron', 100], ['gold', 300], ['food', 50]],
-        'sieges': [['iron', 200], ['stone', 100], ['wood', 350]]}
+
 
 
 def chose_type_of_buildings(update: Update, context: CallbackContext):
